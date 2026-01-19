@@ -1,4 +1,4 @@
-import { Alert, Badge, Button, Group, LoadingOverlay, Modal, Paper, ScrollArea, Stack, Table, Text, TextInput, Textarea, Title } from '@mantine/core';
+import { Alert, Badge, Button, Group, LoadingOverlay, Modal, Paper, Stack, Table, Text, TextInput, Textarea, Title } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import type { IssueData, ReportFormData } from '../types/issue';
 import { getHgFilesByIssue, getHgFilesDiffByIssue, type HgFileChange } from '../utils/hg';
@@ -159,8 +159,7 @@ const FileListPanel = ({ files }: { files: HgFileChange[] }) => {
       <Group justify="space-between" mb="sm">
         <Text size="sm" fw={500}>修改的文件 ({files.length})</Text>
       </Group>
-      <ScrollArea h={200}>
-        <Table highlightOnHover striped>
+      <Table highlightOnHover striped>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>状态</Table.Th>
@@ -182,7 +181,6 @@ const FileListPanel = ({ files }: { files: HgFileChange[] }) => {
             ))}
           </Table.Tbody>
         </Table>
-      </ScrollArea>
     </Paper>
   );
 };
