@@ -50,9 +50,8 @@ export const generateReport = (_: IssueData, formData: ReportFormData): any => {
     ["Title", formData.title, "", ""],
     ["修改文件", formData.files, "", ""],
     ["修改人", formData.modifier, "","修改日期", formData.modifyDate],
-    ["原因", formData.reason, "", ""],
-    ["修改", formData.solution, "", ""],
-    ["影响模块/功能", formData.affectedModules, "", ""],
+    ["原因", formData.solution, "", ""],
+    ["修改", formData.reason, "", ""],
     ["调试结果", "初始状态", "", "", ""],
     ["", formData.debuggingResults.initialState, "", "", ""],
     ["", "结果状态", "", "", ""],
@@ -64,7 +63,7 @@ export const generateReport = (_: IssueData, formData: ReportFormData): any => {
 
   worksheet['!cols'] = [{ wch: 15 }, { wch: 45 }, { wch: 2 }, { wch: 15 }, { wch: 45 }];
   worksheet['!rows'] = [
-    { hpt: 20 }, { hpt: 60 }, { hpt: 60 }, { hpt: 60 }, { hpt: 120 }, { hpt: 80 }, { hpt: 80 }, { hpt: 80 },
+    { hpt: 20 }, { hpt: 60 }, { hpt: 60 }, { hpt: 60 }, { hpt: 120 }, { hpt: 80 }, { hpt: 80 },
     { hpt: 30 }, { hpt: 60 }, { hpt: 30 }, { hpt: 60 }, { hpt: 30 }
   ];
 

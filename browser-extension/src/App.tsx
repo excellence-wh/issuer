@@ -1,6 +1,6 @@
 import { Badge, Button, Paper, Stack } from '@mantine/core';
 import '@mantine/core/styles.css';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import { IssueReportModal } from './components/IssueReportModal';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
@@ -8,6 +8,11 @@ import { WeeklyReportModal } from './components/WeeklyReportModal';
 const isIssuePage = (): boolean => {
   if (typeof window === 'undefined') return false;
   return /\/issues\/\d+/.test(window.location.pathname);
+};
+
+const isRedmineSite = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return true;
 };
 
 interface UsageInfo {
@@ -20,7 +25,6 @@ const getUsageFromPage = (): UsageInfo | null => {
     let resolvedDate = '';
     let aiUsage = '';
 
-    // Check input fields first
     const inputs = document.querySelectorAll('input[type="text"], input[type="number"]');
     for (const input of inputs) {
       const row = input.closest('tr');
@@ -36,7 +40,6 @@ const getUsageFromPage = (): UsageInfo | null => {
       }
     }
 
-    // Also check plain text cells (td elements) - th and td are siblings in same tr
     if (!aiUsage || !resolvedDate) {
       const rows = document.querySelectorAll('tr');
       for (const row of rows) {
@@ -45,7 +48,7 @@ const getUsageFromPage = (): UsageInfo | null => {
         
         for (let i = 0; i < ths.length; i++) {
           const th = ths[i];
-          const td = tds[i]; // Corresponding td by index
+          const td = tds[i];
           if (!th || !td) continue;
 
           const labelText = th.textContent?.trim() || '';
@@ -74,7 +77,6 @@ const FloatingBall = () => {
   const [showIssueReport, setShowIssueReport] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
   const [usageWarning, setUsageWarning] = useState(false);
-  const ballRef = useRef<HTMLDivElement | null>(null);
 
   const cleanupBall = useCallback(() => {
     const ball = document.getElementById('excellence-floating-ball');
@@ -96,22 +98,49 @@ const FloatingBall = () => {
   }, []);
 
   useEffect(() => {
-    if (!isIssuePage()) {
+    if (!isRedmineSite()) {
       cleanupBall();
       return;
     }
 
     checkUsage();
-
     cleanupBall();
 
     const ball = document.createElement('div');
     ball.id = 'excellence-floating-ball';
     ball.className = 'floating-ball';
     ball.textContent = usageWarning ? '⚠️' : '📊';
-    ball.onclick = () => setShowMenu(prev => !prev);
+    ball.style.position = 'fixed';
+    ball.style.bottom = '20px';
+    ball.style.right = '20px';
+    ball.style.zIndex = '2147483647';
+    ball.style.cursor = 'pointer';
+    ball.style.fontSize = '28px';
+    ball.style.width = '50px';
+    ball.style.height = '50px';
+    ball.style.display = 'flex';
+    ball.style.alignItems = 'center';
+    ball.style.justifyContent = 'center';
+    ball.style.borderRadius = '50%';
+    ball.style.background = 'white';
+    ball.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    ball.style.transition = 'transform 0.2s, box-shadow 0.2s';
+
+    ball.onmouseenter = () => {
+      ball.style.transform = 'scale(1.1)';
+      ball.style.boxShadow = '0 6px 20px rgba(0,0,0,0.25)';
+    };
+
+    ball.onmouseleave = () => {
+      ball.style.transform = 'scale(1)';
+      ball.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    };
+
+    ball.onclick = () => {
+      setShowMenu(prev => !prev);
+    };
+
     document.body.appendChild(ball);
-    ballRef.current = ball;
 
     const interval = setInterval(checkUsage, 2000);
 
@@ -121,13 +150,21 @@ const FloatingBall = () => {
     };
   }, [cleanupBall, checkUsage, usageWarning]);
 
-  if (!isIssuePage()) return null;
+  if (!isRedmineSite()) return null;
 
   return (
     <>
       <div className="floating-menu-container">
         {showMenu && (
-          <div className="floating-menu">
+          <div 
+            className="floating-menu" 
+            style={{ 
+              position: 'fixed', 
+              bottom: '80px',
+              right: '20px',
+              zIndex: '2147483646' 
+            }}
+          >
             <Paper shadow="md" p="md" withBorder>
               <Stack gap="xs">
                 {usageWarning && (
@@ -136,7 +173,7 @@ const FloatingBall = () => {
                   </Badge>
                 )}
                 <Button variant="subtle" color="dark" onClick={() => { setShowMenu(false); setShowIssueReport(true); }}>
-                  Issuer Report
+                  Issue Report
                 </Button>
                 <Button variant="subtle" color="dark" onClick={() => { setShowMenu(false); setShowWeeklyReport(true); }}>
                   Weekly Report

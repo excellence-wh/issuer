@@ -1,39 +1,132 @@
-import { Alert, Button, Group, LoadingOverlay, Modal, Stack, TextInput, Textarea, Title } from '@mantine/core';
+import { Alert, Button, Group, LoadingOverlay, Modal, MultiSelect, Stack, TextInput, Title, Text, Select, Paper, Table } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { utils, write } from 'xlsx-js-style';
+import { formatDateForInput, getPeriodForDate } from '../utils/date';
+
+const FAVORITE_PROJECTS = ['65', '114'];
 
 interface WeeklyReportModalProps {
   opened: boolean;
   onClose: () => void;
 }
 
+interface Period {
+  startDate: string;
+  endDate: string;
+  label: string;
+}
+
+interface Project {
+  id: string;
+  name: string;
+}
+
+interface Issue {
+  id: number;
+  subject: string;
+  tracker: string;
+  priority: string;
+  estimated_hours: number;
+  assigned_to: string;
+  start_date: string;
+  due_date: string;
+  created_on: string;
+  resolved_date: string;
+  project_id: string;
+}
+
 export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [project, setProject] = useState('');
-  const [weekNumber, setWeekNumber] = useState('');
-  const [year, setYear] = useState(new Date().getFullYear().toString());
-  const [summary, setSummary] = useState('');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>(FAVORITE_PROJECTS);
+  const [periods, setPeriods] = useState<Period[]>([]);
+  const [selectedPeriodIndex, setSelectedPeriodIndex] = useState(0);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [isCustomPeriod, setIsCustomPeriod] = useState(false);
+  const [issues, setIssues] = useState<Issue[]>([]);
 
   useEffect(() => {
     if (opened) {
       setSuccess(false);
       setError(null);
+      setIssues([]);
+      fetchProjects();
+      generatePeriods();
     }
   }, [opened]);
 
-  const handleGenerate = () => {
-    if (!project.trim()) {
-      setError('请输入项目名称');
+  const fetchProjects = async () => {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/redmine/projects`);
+      const data = await response.json();
+      if (data.success) {
+        setProjects(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch projects:', err);
+      setError('获取项目列表失败，请检查后端服务是否启动');
+    }
+  };
+
+  const generatePeriods = () => {
+    const periodList: Period[] = [];
+    const today = new Date();
+
+    for (let i = 0; i < 12; i++) {
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() - (i * 7));
+      const period = getPeriodForDate(targetDate);
+      periodList.push({
+        startDate: formatDateForInput(period.startDate),
+        endDate: formatDateForInput(period.endDate),
+        label: period.periodLabel
+      });
+    }
+
+    setPeriods(periodList);
+    setSelectedPeriodIndex(0);
+    setCustomStartDate(periodList[0].startDate);
+    setCustomEndDate(periodList[0].endDate);
+    setIsCustomPeriod(false);
+  };
+
+  const handlePeriodChange = (value: string | null) => {
+    if (value === null) {
+      setIsCustomPeriod(true);
+    } else {
+      const index = parseInt(value);
+      setIsCustomPeriod(false);
+      setSelectedPeriodIndex(index);
+      setCustomStartDate(periods[index].startDate);
+      setCustomEndDate(periods[index].endDate);
+    }
+  };
+
+  const getSelectedPeriod = (): { startDate: string; endDate: string } => {
+    if (isCustomPeriod) {
+      return { startDate: customStartDate, endDate: customEndDate };
+    }
+    return { startDate: periods[selectedPeriodIndex].startDate, endDate: periods[selectedPeriodIndex].endDate };
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedProjects || selectedProjects.length === 0) {
+      setError('请选择项目');
       return;
     }
-    if (!weekNumber.trim()) {
-      setError('请输入周数');
+
+    const { startDate, endDate } = getSelectedPeriod();
+    if (!startDate || !endDate) {
+      setError('请选择周期');
       return;
     }
-    if (!year.trim()) {
-      setError('请输入年份');
+
+    if (startDate > endDate) {
+      setError('开始日期不能大于结束日期');
       return;
     }
 
@@ -41,36 +134,40 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
     setError(null);
 
     try {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+
+      const allIssues: Issue[] = [];
+
+      for (const projectId of selectedProjects) {
+        const response = await fetch(
+          `${apiBaseUrl}/api/redmine/weekly-issues?projectId=${projectId}&startDate=${startDate}&endDate=${endDate}&userId=654`
+        );
+        const data = await response.json();
+        if (data.success) {
+          allIssues.push(...data.data);
+        }
+      }
+
+      setIssues(allIssues);
+
+      if (allIssues.length === 0) {
+        setError('未找到符合条件的 issue');
+        setLoading(false);
+        return;
+      }
+
+      const formattedStartDate = startDate.replace(/-/g, '/');
+      const formattedEndDate = endDate.replace(/-/g, '/');
+
       const workbook = utils.book_new();
-      const worksheet = utils.aoa_to_sheet([
-        [`${year}年第${weekNumber}周周报`],
-        [`项目: ${project}`],
-        [''],
-        ['本周工作总结', summary || '无'],
-        [''],
-        [`生成时间: ${new Date().toLocaleString('zh-CN')}`],
-      ]);
-
-      worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
-      worksheet['!cols'] = [{ wch: 20 }, { wch: 60 }];
-
-      const titleCell = worksheet['A1'];
-      if (titleCell) {
-        titleCell.s = { font: { bold: true, sz: 16 }, alignment: { horizontal: 'center' } };
-      }
-
-      const labelCell = worksheet['A4'];
-      if (labelCell) {
-        labelCell.s = { font: { bold: true } };
-      }
-
+      const worksheet = generateSheet(allIssues, formattedStartDate, formattedEndDate);
       utils.book_append_sheet(workbook, worksheet, 'Weekly');
 
       const buffer = write(workbook, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `${project}_${year}W${weekNumber}.xlsx`;
+      link.download = `Weekly_Report_${formattedStartDate}_${formattedEndDate}.xlsx`;
       link.click();
       URL.revokeObjectURL(link.href);
 
@@ -82,26 +179,170 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
     }
   };
 
+  const generateSheet = (allProjectIssues: Issue[], formattedStartDate: string, formattedEndDate: string) => {
+    const headers = [
+      'Redmine No.', 'Project', 'Tracker', 'Description', 'Priority',
+      '总预估工时 (Redmine)', '预估工时', '系数工时',
+      'Need Impact Analysis', 'Is Study Issue', 'Seniority', 'Reopened Developer',
+      'Assignee', 'Due Date', 'Start Date', 'Resolved Date', '登记状态', '日期'
+    ];
+
+    const rows: any[][] = [headers];
+
+    allProjectIssues.forEach(issue => {
+      const projectName = projects.find(p => p.id === issue.project_id)?.name || issue.project_id;
+      rows.push([
+        issue.id,
+        projectName,
+        issue.tracker,
+        issue.subject,
+        issue.priority,
+        issue.estimated_hours,
+        issue.estimated_hours,
+        issue.estimated_hours,
+        '', '', '', '',
+        '程卓',
+        formattedEndDate,
+        formattedStartDate,
+        formattedEndDate,
+        '',
+        ''
+      ]);
+    });
+
+    const workbook = utils.book_new();
+    const worksheet = utils.aoa_to_sheet(rows);
+
+    const colWidths = [
+      { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 100 }, { wch: 12 },
+      { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 15 },
+      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }
+    ];
+    worksheet['!cols'] = colWidths;
+    worksheet['!rows'] = [{ hpt: 25 }, ...(worksheet['!rows'] || []).slice(1)];
+
+    const range = utils.decode_range(worksheet['!ref']!);
+    for (let R = range.s.r; R <= range.e.r; R++) {
+      for (let C = range.s.c; C <= range.e.c; C++) {
+        const addr = utils.encode_cell({ r: R, c: C });
+        if (!worksheet[addr]) {
+          worksheet[addr] = { v: '', t: 's' };
+        }
+        const cell = worksheet[addr];
+        cell.s = {
+          font: R === 0 ? { bold: true } : {},
+          alignment: { horizontal: 'center', vertical: 'center' }
+        };
+      }
+    }
+
+    utils.book_append_sheet(workbook, worksheet, 'Weekly');
+    return worksheet;
+  };
+
   return (
-    <Modal opened={opened} onClose={onClose} title={<Title order={4}>周报</Title>} size="md">
+    <Modal opened={opened} onClose={onClose} title={<Title order={4}>Weekly 报告</Title>} size="xl">
       <LoadingOverlay visible={loading} />
 
       {error && <Alert color="red" mb="md" onClose={() => setError(null)}>{error}</Alert>}
-      {success && <Alert color="green" mb="md" onClose={() => setSuccess(false)}>周报已生成</Alert>}
+      {success && <Alert color="green" mb="md" onClose={() => setSuccess(false)}>报告已生成</Alert>}
 
       <Stack gap="md">
-        <Group grow>
-          <TextInput label="项目" placeholder="项目名称" value={project} onChange={(e) => setProject(e.target.value)} disabled={loading} />
-          <TextInput label="年份" placeholder="2024" value={year} onChange={(e) => setYear(e.target.value)} disabled={loading} />
-        </Group>
+        <MultiSelect
+          label="项目"
+          placeholder="选择项目"
+          data={projects.map(p => ({ value: p.id, label: p.name }))}
+          value={selectedProjects}
+          onChange={setSelectedProjects}
+          disabled={loading || projects.length === 0}
+          searchable
+          clearable
+          defaultValue={FAVORITE_PROJECTS}
+        />
 
-        <TextInput label="周数" placeholder="1-52" value={weekNumber} onChange={(e) => setWeekNumber(e.target.value)} disabled={loading} />
+        <div>
+          <Text size="sm" fw={500} mb="xs">周期（上周四 ~ 本周三）</Text>
+          <Group grow>
+            <Select
+              data={periods.map((p, i) => ({ value: String(i), label: p.label }))}
+              value={isCustomPeriod ? null : String(selectedPeriodIndex)}
+              onChange={handlePeriodChange}
+              placeholder="选择周期"
+              disabled={loading}
+              styles={{ input: { cursor: 'pointer' } }}
+              clearable={false}
+            />
+            <Button
+              color="dark"
+              variant={isCustomPeriod ? 'filled' : 'outline'}
+              size="xs"
+              onClick={() => setIsCustomPeriod(!isCustomPeriod)}
+              disabled={loading}
+            >
+              {isCustomPeriod ? '取消自定义' : '自定义'}
+            </Button>
+          </Group>
+        </div>
 
-        <Textarea label="本周工作总结" placeholder="请输入本周工作总结..." minRows={4} value={summary} onChange={(e) => setSummary(e.target.value)} disabled={loading} />
+        {isCustomPeriod && (
+          <Group grow>
+            <TextInput
+              type="date"
+              label="开始日期"
+              value={customStartDate}
+              onChange={(e) => setCustomStartDate(e.target.value)}
+              disabled={loading}
+            />
+            <TextInput
+              type="date"
+              label="结束日期"
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+              disabled={loading}
+            />
+          </Group>
+        )}
+
+        {issues.length > 0 && (
+          <Paper p="sm" withBorder>
+            <Text size="sm" fw={500} mb="xs">问题列表 ({issues.length})</Text>
+            <Table highlightOnHover striped>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>No.</Table.Th>
+                  <Table.Th>Tracker</Table.Th>
+                  <Table.Th>Subject</Table.Th>
+                  <Table.Th>Resolved Date</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {issues.slice(0, 10).map(issue => (
+                  <Table.Tr key={issue.id}>
+                    <Table.Td>{issue.id}</Table.Td>
+                    <Table.Td>{issue.tracker}</Table.Td>
+                    <Table.Td>{issue.subject}</Table.Td>
+                    <Table.Td>{issue.resolved_date}</Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+            {issues.length > 10 && (
+              <Text size="xs" c="gray" mt="xs">... 共 {issues.length} 条</Text>
+            )}
+          </Paper>
+        )}
 
         <Group justify="flex-end">
+          <Button
+            color="dark"
+            onClick={handleGenerate}
+            disabled={!selectedProjects || selectedProjects.length === 0 || loading}
+            loading={loading}
+          >
+            生成
+          </Button>
           <Button variant="subtle" color="dark" onClick={onClose} disabled={loading}>取消</Button>
-          <Button color="dark" onClick={handleGenerate} disabled={!project.trim() || !weekNumber.trim() || !year.trim() || loading}>生成</Button>
         </Group>
       </Stack>
     </Modal>

@@ -22,7 +22,6 @@ export interface ReportFormData {
   modifyDate: string;
   reason: string;
   solution: string;
-  affectedModules: string;
   debuggingResults:DebuggingResults;
 }
 
