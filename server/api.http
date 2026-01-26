@@ -1,0 +1,48 @@
+@baseUrl = http://localhost:3001
+@repoPath = D:\projects\CRM
+@issue = 91550
+
+# ============================================
+# Hg API Test File (本地仓库)
+# 使用 VS Code REST Client 插件运行
+# ============================================
+
+### Root endpoint
+GET {{baseUrl}}/ HTTP/1.1
+Accept: text/plain
+
+###
+
+# Get changeset by issue number
+GET {{baseUrl}}/api/hg/changeset?issue={{issue}}&repoPath={{repoPath}} HTTP/1.1
+Accept: application/json
+
+###
+
+# Get files by issue number
+GET {{baseUrl}}/api/hg/files?issue={{issue}}&repoPath={{repoPath}} HTTP/1.1
+Accept: application/json
+
+###
+
+# Get diff by issue number
+GET {{baseUrl}}/api/hg/diff?issue={{issue}}&repoPath={{repoPath}} HTTP/1.1
+Accept: application/json
+
+###
+
+# Get all issue numbers from hg log
+GET {{baseUrl}}/api/hg/issues?repoPath={{repoPath}} HTTP/1.1
+Accept: application/json
+
+###
+
+# Test: Missing parameters
+GET {{baseUrl}}/api/hg/changeset HTTP/1.1
+Accept: application/json
+
+###
+
+# Test: Different issue number
+GET {{baseUrl}}/api/hg/changeset?issue=123&repoPath={{repoPath}} HTTP/1.1
+Accept: application/json

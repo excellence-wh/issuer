@@ -1,0 +1,31 @@
+{
+    "manifest_version": 3,
+    "name": "excellence-issuer",
+    "version": "1.0.0",
+    "description": "Issuer tools - Issue report and weekly report generator",
+    "action": {
+        "default_popup": "index.html",
+        "default_icon": {
+            "16": "favicon-dark.png"
+        },
+        "default_width": 400,
+        "default_height": 300
+    },
+    "icons": {
+        "16": "favicon-dark.png"
+    },
+    "content_scripts": [
+        {
+            "matches": ["*://*/*"],
+            "js": ["assets/index.js"],
+            "css": ["assets/index.css"],
+            "run_at": "document_end"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": ["assets/index.js", "assets/index.css", "templates/*.xlsx"],
+            "matches": ["*://*/*"]
+        }
+    ]
+}
