@@ -1,10 +1,15 @@
-import { ActionIcon, Badge, Button, Paper, Stack, Tooltip, useMantineColorScheme } from '@mantine/core';
-import '@mantine/core/styles.css';
-import { IconMoon, IconSun } from '@tabler/icons-react';
+import { BarChart3, FileText, Moon, Sun } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import { IssueReportModal } from './components/IssueReportModal';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const isIssuePage = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -78,7 +83,10 @@ const FloatingBall = () => {
   const [showIssueReport, setShowIssueReport] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
   const [usageWarning, setUsageWarning] = useState(false);
-  const { colorScheme, setColorScheme } = useMantineColorScheme();
+  const [selectedValue, setSelectedValue] = useState("");
+  const [isDark, setIsDark] = useState(() => {
+    return localStorage.getItem('issuer-color-scheme') === 'dark';
+  });
 
   const cleanupBall = useCallback(() => {
     const ball = document.getElementById('excellence-floating-ball');
@@ -99,13 +107,32 @@ const FloatingBall = () => {
     }
   }, []);
 
+  const handleMenuSelect = (value: string) => {
+    setSelectedValue(value);
+    setShowMenu(false);
+    
+    if (value === "issue") {
+      setShowIssueReport(true);
+    } else if (value === "weekly") {
+      setShowWeeklyReport(true);
+    } else if (value === "theme") {
+      const newScheme = isDark ? 'light' : 'dark';
+      setIsDark(!isDark);
+      localStorage.setItem('issuer-color-scheme', newScheme);
+      if (newScheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  };
+
   useEffect(() => {
     if (!isRedmineSite()) {
       cleanupBall();
       return;
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     checkUsage();
     cleanupBall();
 
@@ -125,8 +152,8 @@ const FloatingBall = () => {
     ball.style.alignItems = 'center';
     ball.style.justifyContent = 'center';
     ball.style.borderRadius = '50%';
-    ball.style.background = colorScheme === 'dark' ? '#2c2e33' : 'white';
-    ball.style.boxShadow = colorScheme === 'dark' 
+    ball.style.background = isDark ? '#1e293b' : 'white';
+    ball.style.boxShadow = isDark 
       ? '0 4px 12px rgba(0,0,0,0.4)' 
       : '0 4px 12px rgba(0,0,0,0.15)';
     ball.style.transition = 'transform 0.2s, box-shadow 0.2s';
@@ -138,7 +165,7 @@ const FloatingBall = () => {
 
     ball.onmouseleave = () => {
       ball.style.transform = 'scale(1)';
-      ball.style.boxShadow = colorScheme === 'dark'
+      ball.style.boxShadow = isDark
         ? '0 4px 12px rgba(0,0,0,0.4)'
         : '0 4px 12px rgba(0,0,0,0.15)';
     };
@@ -156,55 +183,70 @@ const FloatingBall = () => {
       clearInterval(interval);
       cleanupBall();
     };
-  }, [cleanupBall, checkUsage, usageWarning, colorScheme]);
+  }, [cleanupBall, checkUsage, usageWarning, isDark]);
 
   if (!isRedmineSite()) return null;
 
   return (
     <>
-      <div className="floating-menu-container">
-        {showMenu && (
-          <div 
-            className="floating-menu" 
+      {/* shadcn Select 作为下拉菜单 */}
+      <div 
+        style={{
+          position: 'fixed',
+          bottom: '80px',
+          right: '20px',
+          zIndex: 2147483646,
+          opacity: showMenu ? 1 : 0,
+          pointerEvents: showMenu ? 'auto' : 'none',
+          transition: 'opacity 0.2s ease'
+        }}
+      >
+        <Select 
+          value={selectedValue} 
+          onValueChange={handleMenuSelect}
+          open={showMenu}
+          onOpenChange={setShowMenu}
+        >
+          <SelectTrigger 
             style={{ 
-              position: 'fixed', 
-              bottom: '80px',
-              right: '20px',
-              zIndex: '2147483646' 
+              width: '180px',
+              background: isDark ? '#1e293b' : 'white',
+              borderColor: isDark ? '#334155' : '#e2e8f0',
+              color: isDark ? '#e2e8f0' : '#1e293b'
             }}
           >
-            <Paper shadow="md" p="md" withBorder>
-              <Stack gap="xs">
-                {usageWarning && (
-                  <Badge color="yellow" size="sm" mb="xs">
-                    请填写AI Usage
-                  </Badge>
+            <SelectValue placeholder={usageWarning ? "⚠️ 请填写 AI Usage" : "📊 选择功能"} />
+          </SelectTrigger>
+          <SelectContent 
+            style={{ 
+              background: isDark ? '#1e293b' : 'white',
+              borderColor: isDark ? '#334155' : '#e2e8f0'
+            }}
+          >
+            <SelectItem value="issue">
+              <div className="flex items-center gap-2">
+                <FileText size={16} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
+                <span>Issue Report</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="weekly">
+              <div className="flex items-center gap-2">
+                <BarChart3 size={16} className={isDark ? 'text-green-400' : 'text-green-600'} />
+                <span>Weekly Report</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="theme">
+              <div className="flex items-center gap-2">
+                {isDark ? (
+                  <Sun size={16} className="text-amber-400" />
+                ) : (
+                  <Moon size={16} className="text-indigo-500" />
                 )}
-                <Button variant="subtle" color="dark" onClick={() => { setShowMenu(false); setShowIssueReport(true); }}>
-                  Issue Report
-                </Button>
-                <Button variant="subtle" color="dark" onClick={() => { setShowMenu(false); setShowWeeklyReport(true); }}>
-                  Weekly Report
-                </Button>
-                <Tooltip label={colorScheme === 'dark' ? '切换到浅色模式' : '切换到暗黑模式'} position="left" withArrow>
-                  <ActionIcon 
-                    variant="subtle" 
-                    color="gray" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const newScheme = colorScheme === 'dark' ? 'light' : 'dark';
-                      setColorScheme(newScheme);
-                      localStorage.setItem('issuer-color-scheme', newScheme);
-                    }}
-                    size="lg"
-                  >
-                    {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
-                  </ActionIcon>
-                </Tooltip>
-              </Stack>
-            </Paper>
-          </div>
-        )}
+                <span>{isDark ? '浅色模式' : '暗黑模式'}</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <IssueReportModal opened={showIssueReport} onClose={() => setShowIssueReport(false)} />

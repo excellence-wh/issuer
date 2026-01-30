@@ -1,23 +1,5 @@
-import {
-  ActionIcon,
-  Alert,
-  Badge,
-  Button,
-  Group,
-  LoadingOverlay,
-  Modal,
-  Paper,
-  Select,
-  Stack,
-  Table,
-  Text,
-  TextInput,
-  Textarea,
-  Title,
-  Tooltip,
-} from "@mantine/core";
-import { IconSparkles } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
 import { llmService } from "../services/llm";
 import type { IssueData, ReportFormData } from "../types/issue";
 import {
@@ -26,6 +8,36 @@ import {
   type HgFileChange,
 } from "../utils/hg";
 import { generateAndDownloadReport } from "../utils/report";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface IssueReportModalProps {
   opened: boolean;
@@ -48,13 +60,11 @@ const PROJECT_PATH_MAP: Record<string, string> = {
 }
 
 const getProjectFromPage = (): string | null => {
-  // 从 URL 路径中提取项目名，例如 /redmine/projects/esb/issues
   const pathMatch = window.location.pathname.match(/\/projects\/([^\/]+)/)
   if (pathMatch) {
     return pathMatch[1].toLowerCase()
   }
   
-  // 备选：从页面标题或选择器中获取
   const projectSelect = document.querySelector('#project_quick_jump_box') as HTMLSelectElement
   if (projectSelect) {
     const selectedOption = projectSelect.querySelector('option[selected]')
@@ -75,7 +85,6 @@ const getRepoPath = (): string => {
   if (project && PROJECT_PATH_MAP[project]) {
     return PROJECT_PATH_MAP[project]
   }
-  // 默认回退到 CRM
   return "D:/projects/CRM"
 }
 
@@ -84,7 +93,6 @@ const getUsageFromPage = (): UsageInfo | null => {
     let resolvedDate = "";
     let aiUsage = "";
 
-    // Check input fields first
     const inputs = document.querySelectorAll(
       'input[type="text"], input[type="number"]'
     );
@@ -105,7 +113,6 @@ const getUsageFromPage = (): UsageInfo | null => {
       }
     }
 
-    // Also check plain text cells (td elements) - th and td are siblings in same tr
     if (!aiUsage || !resolvedDate) {
       const rows = document.querySelectorAll("tr");
       for (const row of rows) {
@@ -114,7 +121,7 @@ const getUsageFromPage = (): UsageInfo | null => {
 
         for (let i = 0; i < ths.length; i++) {
           const th = ths[i];
-          const td = tds[i]; // Corresponding td by index
+          const td = tds[i];
           if (!th || !td) continue;
 
           const labelText = th.textContent?.trim() || "";
@@ -233,18 +240,18 @@ const FileStatusBadge = ({ status }: { status: string }) => {
   const getStatusConfig = () => {
     switch (status.toUpperCase()) {
       case "A":
-        return { color: "green", label: "新增", symbol: "+" };
+        return { variant: "default" as const, label: "新增", symbol: "+" };
       case "D":
-        return { color: "red", label: "删除", symbol: "-" };
+        return { variant: "destructive" as const, label: "删除", symbol: "-" };
       case "M":
-        return { color: "blue", label: "修改", symbol: "~" };
+        return { variant: "secondary" as const, label: "修改", symbol: "~" };
       default:
-        return { color: "gray", label: status, symbol: "?" };
+        return { variant: "outline" as const, label: status, symbol: "?" };
     }
   };
   const config = getStatusConfig();
   return (
-    <Badge color={config.color} size="sm" variant="filled">
+    <Badge variant={config.variant} className="text-xs">
       {config.symbol} {config.label}
     </Badge>
   );
@@ -254,35 +261,33 @@ const FileListPanel = ({ files }: { files: HgFileChange[] }) => {
   if (files.length === 0) return null;
 
   return (
-    <Paper p="sm" withBorder>
-      <Group justify="space-between" mb="sm">
-        <Text size="sm" fw={500}>
-          修改的文件 ({files.length})
-        </Text>
-      </Group>
-      <Table highlightOnHover striped>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>状态</Table.Th>
-            <Table.Th>文件路径</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {files.map((file, index) => (
-            <Table.Tr key={index}>
-              <Table.Td w={80}>
-                <FileStatusBadge status={file.status} />
-              </Table.Td>
-              <Table.Td>
-                <Text size="xs" ff="monospace" lineClamp={1}>
-                  {file.path}
-                </Text>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
-    </Paper>
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex justify-between items-center mb-3">
+          <p className="text-sm font-medium">修改的文件 ({files.length})</p>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-20">状态</TableHead>
+              <TableHead>文件路径</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {files.map((file, index) => (
+              <TableRow key={index}>
+                <TableCell className="w-20">
+                  <FileStatusBadge status={file.status} />
+                </TableCell>
+                <TableCell>
+                  <code className="text-xs truncate block">{file.path}</code>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -464,207 +469,257 @@ export const IssueReportModal = ({
     }
   };
 
+  const handleClose = () => {
+    setError(null);
+    setSuccess(false);
+    onClose();
+  };
+
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title={<Title order={4}>Issue 报告</Title>}
-      size="xl"
-      styles={{ body: { maxHeight: "70vh", overflowY: "auto" } }}
-    >
-      <LoadingOverlay visible={loading} />
+    <Dialog open={opened} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Issue 报告</DialogTitle>
+          <DialogDescription>
+            生成 Issue 报告文档
+          </DialogDescription>
+        </DialogHeader>
 
-      {error && (
-        <Alert color="red" mb="md" onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-      {success && (
-        <Alert color="green" mb="md" onClose={() => setSuccess(false)}>
-          报告已生成：{issueData?.id}.xlsx
-        </Alert>
-      )}
+        {loading && (
+          <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50">
+            <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
+        )}
 
-      {issueData && (
-        <Stack gap="md">
-          <Paper p="sm" withBorder>
-            <Group gap="xs" wrap="wrap">
-              <Text size="sm" fw={500}>
-                #{issueData.id}
-              </Text>
-              <Text size="sm">|</Text>
-              <Text size="sm" lineClamp={1}>
-                {issueData.title}
-              </Text>
-            </Group>
-          </Paper>
-
-          {usageWarning && (
-            <Alert color="yellow" mb="md">
-              {usageWarning}
-              <Button variant="subtle" size="xs" ml="xs" onClick={refreshUsage}>
-                刷新
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription className="flex justify-between items-center">
+              {error}
+              <Button variant="ghost" size="sm" onClick={() => setError(null)}>
+                关闭
               </Button>
-            </Alert>
-          )}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {success && (
+          <Alert className="mb-4 bg-green-100 border-green-200">
+            <AlertDescription className="flex justify-between items-center">
+              报告已生成：{issueData?.id}.xlsx
+              <Button variant="ghost" size="sm" onClick={() => setSuccess(false)}>
+                关闭
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-          {usageInfo && usageInfo.aiUsage && usageInfo.aiUsage !== "0" && (
-            <Paper p="sm" withBorder>
-              <Group gap="xs">
-                <Badge color="green" variant="light">
-                  Usage: {usageInfo.aiUsage}%
-                </Badge>
-                {usageInfo.resolvedDate && (
-                  <Badge color="blue" variant="light">
-                    Resolved: {usageInfo.resolvedDate}
-                  </Badge>
+        {issueData && (
+          <div className="space-y-4 mt-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium">#{issueData.id}</span>
+                  <span className="text-sm">|</span>
+                  <span className="text-sm truncate">{issueData.title}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {usageWarning && (
+              <Alert variant="default" className="bg-yellow-100 border-yellow-200">
+                <AlertDescription className="flex items-center gap-2">
+                  {usageWarning}
+                  <Button variant="ghost" size="sm" onClick={refreshUsage}>
+                    刷新
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {usageInfo && usageInfo.aiUsage && usageInfo.aiUsage !== "0" && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-green-100">
+                      Usage: {usageInfo.aiUsage}%
+                    </Badge>
+                    {usageInfo.resolvedDate && (
+                      <Badge variant="outline" className="bg-blue-100">
+                        Resolved: {usageInfo.resolvedDate}
+                      </Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="space-y-2">
+              <Label>Issue 类型</Label>
+              <Select
+                value={issueType}
+                onValueChange={(value) => {
+                  setIssueType(value);
+                  setValidationErrors({});
+                }}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Bug">Bug</SelectItem>
+                  <SelectItem value="Enhancement">Enhancement</SelectItem>
+                  <SelectItem value="Feature">Feature</SelectItem>
+                  <SelectItem value="Task">Task</SelectItem>
+                  <SelectItem value="Support">Support</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input
+                placeholder="RC-Condition: xxx"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (validationErrors["title"]) {
+                    setValidationErrors({ ...validationErrors, title: "" });
+                  }
+                }}
+                disabled={loading}
+              />
+              {validationErrors["title"] && (
+                <p className="text-sm text-red-500">{validationErrors["title"]}</p>
+              )}
+            </div>
+
+            {hgLoading ? (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex justify-center items-center py-4">
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : hgError ? (
+              <Card>
+                <CardContent className="p-4">
+                  <p className="text-sm text-red-500">{hgError}</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <FileListPanel files={hgFiles} />
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>修改人</Label>
+                <Input
+                  placeholder="修改人"
+                  value={modifier || "Zhuo Cheng"}
+                  onChange={(e) => {
+                    setModifier(e.target.value);
+                    if (validationErrors["modifier"]) {
+                      setValidationErrors({ ...validationErrors, modifier: "" });
+                    }
+                  }}
+                  disabled={loading}
+                />
+                {validationErrors["modifier"] && (
+                  <p className="text-sm text-red-500">{validationErrors["modifier"]}</p>
                 )}
-              </Group>
-            </Paper>
-          )}
+              </div>
+              <div className="space-y-2">
+                <Label>修改日期</Label>
+                <Input
+                  type="date"
+                  value={normalizeDate(usageInfo?.resolvedDate || "")}
+                  onChange={(e) => {
+                    if (usageInfo) {
+                      setUsageInfo({ ...usageInfo, resolvedDate: e.target.value });
+                    }
+                  }}
+                  disabled={loading}
+                />
+              </div>
+            </div>
 
-          <Select
-            label="Issue 类型"
-            placeholder="选择类型"
-            value={issueType}
-            onChange={(value) => {
-              setIssueType(value || "");
-              setValidationErrors({});
-            }}
-            data={[
-              { value: "Bug", label: "Bug" },
-              { value: "Enhancement", label: "Enhancement" },
-              { value: "Feature", label: "Feature" },
-              { value: "Task", label: "Task" },
-              { value: "Support", label: "Support" },
-            ]}
-            searchable
-            disabled={loading}
-          />
+            <div className="space-y-2">
+              <Label>原因</Label>
+              <Textarea
+                placeholder="问题原因（来自问题描述）"
+                rows={2}
+                value={solution}
+                onChange={(e) => {
+                  setSolution(e.target.value);
+                  if (validationErrors["solution"]) {
+                    setValidationErrors({ ...validationErrors, solution: "" });
+                  }
+                }}
+                disabled={loading || llmLoading}
+              />
+              {validationErrors["solution"] && (
+                <p className="text-sm text-red-500">{validationErrors["solution"]}</p>
+              )}
+            </div>
 
-          <TextInput
-            label="Title"
-            placeholder="RC-Condition: xxx"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              if (validationErrors["title"]) {
-                setValidationErrors({ ...validationErrors, title: "" });
-              }
-            }}
-            error={validationErrors["title"]}
-            disabled={loading}
-          />
+            <TooltipProvider>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label>修改</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleGenerateWithLLM}
+                        disabled={!issueData || !files || llmLoading}
+                      >
+                        <Sparkles size={18} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>点击生成修改原因</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Textarea
+                  placeholder="描述具体的解决方案（点击AI基于修改记录生成）"
+                  rows={2}
+                  value={reason}
+                  onChange={(e) => {
+                    setReason(e.target.value);
+                    if (validationErrors["reason"]) {
+                      setValidationErrors({ ...validationErrors, reason: "" });
+                    }
+                  }}
+                  disabled={loading || llmLoading}
+                />
+                {validationErrors["reason"] && (
+                  <p className="text-sm text-red-500">{validationErrors["reason"]}</p>
+                )}
+              </div>
+            </TooltipProvider>
 
-          {hgLoading ? (
-            <Paper p="sm" withBorder>
-              <Group justify="center" py="md">
-                <Text size="sm" c="gray">
-                  正在获取修改文件...
-                </Text>
-              </Group>
-            </Paper>
-          ) : hgError ? (
-            <Paper p="sm" withBorder>
-              <Text size="sm" c="red">
-                {hgError}
-              </Text>
-            </Paper>
-          ) : (
-            <FileListPanel files={hgFiles} />
-          )}
-
-          <Group grow>
-            <TextInput
-              label="修改人"
-              placeholder="修改人"
-              value={"Zhuo Cheng"}
-              onChange={(e) => {
-                setModifier(e.target.value);
-                if (validationErrors["modifier"]) {
-                  setValidationErrors({ ...validationErrors, modifier: "" });
-                }
-              }}
-              error={validationErrors["modifier"]}
-              disabled={loading}
-            />
-            <TextInput
-              label="修改日期"
-              type="date"
-              value={normalizeDate(usageInfo?.resolvedDate || "")}
-              onChange={(e) => {
-                if (usageInfo) {
-                  setUsageInfo({ ...usageInfo, resolvedDate: e.target.value });
-                }
-              }}
-              disabled={loading}
-            />
-          </Group>
-
-          <Textarea
-            label="原因"
-            placeholder="问题原因（来自问题描述）"
-            minRows={2}
-            value={solution}
-            onChange={(e) => {
-              setSolution(e.target.value);
-              if (validationErrors["solution"]) {
-                setValidationErrors({ ...validationErrors, solution: "" });
-              }
-            }}
-            error={validationErrors["solution"]}
-            disabled={loading || llmLoading}
-          />
-
-          <Textarea
-            label={
-              <Group justify="space-between">
-                <Text>修改</Text>
-                <Tooltip label="点击生成修改原因" position="top" withArrow>
-                  <ActionIcon
-                    variant="subtle"
-                    color="gray"
-                    onClick={handleGenerateWithLLM}
-                    loading={llmLoading}
-                    disabled={!issueData || !files}
-                  >
-                    <IconSparkles size={18} />
-                  </ActionIcon>
-                </Tooltip>
-              </Group>
-            }
-            placeholder="描述具体的解决方案（点击AI基于修改记录生成）"
-            minRows={2}
-            value={reason}
-            onChange={(e) => {
-              setReason(e.target.value);
-              if (validationErrors["reason"]) {
-                setValidationErrors({ ...validationErrors, reason: "" });
-              }
-            }}
-            error={validationErrors["reason"]}
-            disabled={loading || llmLoading}
-          />
-
-          <Group justify="flex-end">
-            <Button
-              color="dark"
-              onClick={handleGenerate}
-              disabled={!issueData || loading}
-            >
-              生成
-            </Button>
-            <Button
-              variant="subtle"
-              color="dark"
-              onClick={onClose}
-              disabled={loading}
-            >
-              取消
-            </Button>
-          </Group>
-        </Stack>
-      )}
-    </Modal>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                onClick={handleGenerate}
+                disabled={!issueData || loading}
+              >
+                生成
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={loading}
+              >
+                取消
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };

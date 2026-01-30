@@ -1,78 +1,50 @@
 .floating-ball {
   position: fixed;
-  top: 50%;
+  bottom: 20px;
   right: 20px;
-  transform: translateY(-50%);
   width: 50px;
   height: 50px;
-  background: linear-gradient(135deg, #228be6 0%, #1971c2 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
-  z-index: 99999;
+  z-index: 2147483647;
   font-size: 24px;
-  transition: all 0.3s ease;
-  animation: float 3s ease-in-out infinite;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .floating-ball:hover {
-  transform: translateY(-50%) scale(1.1);
-  box-shadow: 0 6px 20px rgba(34, 139, 230, 0.5);
+  transform: scale(1.1);
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(-50%);
-  }
-  50% {
-    transform: translateY(calc(-50% - 10px));
-  }
-}
-
-.floating-menu-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 99998;
-}
-
-.floating-menu {
-  position: fixed;
-  top: 50%;
-  right: 80px;
-  transform: translateY(-50%);
-  pointer-events: auto;
-  z-index: 99999;
-  animation: slideIn 0.2s ease;
-}
-
-@keyframes slideIn {
+/* 菜单进入动画 */
+@keyframes menuSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-50%) translateX(-20px);
+    transform: translateY(10px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(-50%) translateX(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-.floating-menu .mantine-Paper-root {
-  min-width: 140px;
-  background: #fff;
-  border: 1px solid #ddd;
+/* 菜单项悬停效果 */
+.floating-menu-enter button {
+  position: relative;
+  overflow: hidden;
 }
 
-.floating-menu .mantine-Button-root {
-  justify-content: flex-start;
+.floating-menu-enter button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s;
 }
 
-.floating-menu .mantine-Button-root:hover {
-  background: #f5f5f5;
+.floating-menu-enter button:hover::before {
+  transform: translateX(100%);
 }

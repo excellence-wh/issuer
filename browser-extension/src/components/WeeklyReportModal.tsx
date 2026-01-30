@@ -1,7 +1,36 @@
-import { Alert, Button, Group, LoadingOverlay, Modal, MultiSelect, Stack, TextInput, Title, Text, Select, Paper, Table } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { utils, write } from 'xlsx-js-style';
 import { formatDateForInput, getPeriodForDate } from '../utils/date';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { ChevronsUpDown } from 'lucide-react';
 
 const FAVORITE_PROJECTS = ['65', '114'];
 
@@ -47,6 +76,7 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
   const [customEndDate, setCustomEndDate] = useState('');
   const [isCustomPeriod, setIsCustomPeriod] = useState(false);
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [openProjects, setOpenProjects] = useState(false);
 
   useEffect(() => {
     if (opened) {
@@ -94,8 +124,8 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
     setIsCustomPeriod(false);
   };
 
-  const handlePeriodChange = (value: string | null) => {
-    if (value === null) {
+  const handlePeriodChange = (value: string) => {
+    if (value === 'custom') {
       setIsCustomPeriod(true);
     } else {
       const index = parseInt(value);
@@ -111,6 +141,14 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
       return { startDate: customStartDate, endDate: customEndDate };
     }
     return { startDate: periods[selectedPeriodIndex].startDate, endDate: periods[selectedPeriodIndex].endDate };
+  };
+
+  const toggleProject = (projectId: string) => {
+    setSelectedProjects(prev => 
+      prev.includes(projectId) 
+        ? prev.filter(id => id !== projectId)
+        : [...prev, projectId]
+    );
   };
 
   const handleGenerate = async () => {
@@ -241,110 +279,188 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
     return worksheet;
   };
 
+  const handleClose = () => {
+    setError(null);
+    setSuccess(false);
+    onClose();
+  };
+
+  const selectedProjectsLabel = selectedProjects.length > 0
+    ? selectedProjects.length === 1
+      ? projects.find(p => p.id === selectedProjects[0])?.name || `${selectedProjects.length} 个项目`
+      : `${selectedProjects.length} 个项目`
+    : '选择项目';
+
   return (
-    <Modal opened={opened} onClose={onClose} title={<Title order={4}>Weekly 报告</Title>} size="xl">
-      <LoadingOverlay visible={loading} />
+    <Dialog open={opened} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Weekly 报告</DialogTitle>
+          <DialogDescription>
+            生成周工作报告
+          </DialogDescription>
+        </DialogHeader>
 
-      {error && <Alert color="red" mb="md" onClose={() => setError(null)}>{error}</Alert>}
-      {success && <Alert color="green" mb="md" onClose={() => setSuccess(false)}>报告已生成</Alert>}
+        {loading && (
+          <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50">
+            <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
+        )}
 
-      <Stack gap="md">
-        <MultiSelect
-          label="项目"
-          placeholder="选择项目"
-          data={projects.map(p => ({ value: p.id, label: p.name }))}
-          value={selectedProjects}
-          onChange={setSelectedProjects}
-          disabled={loading || projects.length === 0}
-          searchable
-          clearable
-          defaultValue={FAVORITE_PROJECTS}
-        />
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription className="flex justify-between items-center">
+              {error}
+              <Button variant="ghost" size="sm" onClick={() => setError(null)}>
+                关闭
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-        <div>
-          <Text size="sm" fw={500} mb="xs">周期（上周四 ~ 本周三）</Text>
-          <Group grow>
-            <Select
-              data={periods.map((p, i) => ({ value: String(i), label: p.label }))}
-              value={isCustomPeriod ? null : String(selectedPeriodIndex)}
-              onChange={handlePeriodChange}
-              placeholder="选择周期"
-              disabled={loading}
-              styles={{ input: { cursor: 'pointer' } }}
-              clearable={false}
-            />
+        {success && (
+          <Alert className="mb-4 bg-green-100 border-green-200">
+            <AlertDescription className="flex justify-between items-center">
+              报告已生成
+              <Button variant="ghost" size="sm" onClick={() => setSuccess(false)}>
+                关闭
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <Label>项目</Label>
+            <Popover open={openProjects} onOpenChange={setOpenProjects}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openProjects}
+                  className="w-full justify-between"
+                  disabled={loading || projects.length === 0}
+                >
+                  {selectedProjectsLabel}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <div className="max-h-60 overflow-auto p-2">
+                  {projects.map((project) => (
+                    <div
+                      key={project.id}
+                      className="flex items-center space-x-2 py-2 px-2 hover:bg-accent rounded cursor-pointer"
+                      onClick={() => toggleProject(project.id)}
+                    >
+                      <Checkbox
+                        checked={selectedProjects.includes(project.id)}
+                        onCheckedChange={() => toggleProject(project.id)}
+                      />
+                      <span className="text-sm">{project.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <Label>周期（上周四 ~ 本周三）</Label>
+            <div className="flex gap-2">
+              <Select
+                value={isCustomPeriod ? 'custom' : String(selectedPeriodIndex)}
+                onValueChange={handlePeriodChange}
+                disabled={loading}
+              >
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="选择周期" />
+                </SelectTrigger>
+                <SelectContent>
+                  {periods.map((p, i) => (
+                    <SelectItem key={i} value={String(i)}>{p.label}</SelectItem>
+                  ))}
+                  <SelectItem value="custom">自定义</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant={isCustomPeriod ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setIsCustomPeriod(!isCustomPeriod)}
+                disabled={loading}
+              >
+                {isCustomPeriod ? '取消自定义' : '自定义'}
+              </Button>
+            </div>
+          </div>
+
+          {isCustomPeriod && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>开始日期</Label>
+                <Input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>结束日期</Label>
+                <Input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+            </div>
+          )}
+
+          {issues.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm font-medium mb-3">问题列表 ({issues.length})</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>No.</TableHead>
+                      <TableHead>Tracker</TableHead>
+                      <TableHead>Subject</TableHead>
+                      <TableHead>Resolved Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {issues.slice(0, 10).map(issue => (
+                      <TableRow key={issue.id}>
+                        <TableCell>{issue.id}</TableCell>
+                        <TableCell>{issue.tracker}</TableCell>
+                        <TableCell>{issue.subject}</TableCell>
+                        <TableCell>{issue.resolved_date}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {issues.length > 10 && (
+                  <p className="text-xs text-gray-500 mt-2">... 共 {issues.length} 条</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4">
             <Button
-              color="dark"
-              variant={isCustomPeriod ? 'filled' : 'outline'}
-              size="xs"
-              onClick={() => setIsCustomPeriod(!isCustomPeriod)}
-              disabled={loading}
+              onClick={handleGenerate}
+              disabled={!selectedProjects || selectedProjects.length === 0 || loading}
             >
-              {isCustomPeriod ? '取消自定义' : '自定义'}
+              {loading ? '生成中...' : '生成'}
             </Button>
-          </Group>
+            <Button variant="outline" onClick={handleClose} disabled={loading}>
+              取消
+            </Button>
+          </div>
         </div>
-
-        {isCustomPeriod && (
-          <Group grow>
-            <TextInput
-              type="date"
-              label="开始日期"
-              value={customStartDate}
-              onChange={(e) => setCustomStartDate(e.target.value)}
-              disabled={loading}
-            />
-            <TextInput
-              type="date"
-              label="结束日期"
-              value={customEndDate}
-              onChange={(e) => setCustomEndDate(e.target.value)}
-              disabled={loading}
-            />
-          </Group>
-        )}
-
-        {issues.length > 0 && (
-          <Paper p="sm" withBorder>
-            <Text size="sm" fw={500} mb="xs">问题列表 ({issues.length})</Text>
-            <Table highlightOnHover striped>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>No.</Table.Th>
-                  <Table.Th>Tracker</Table.Th>
-                  <Table.Th>Subject</Table.Th>
-                  <Table.Th>Resolved Date</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {issues.slice(0, 10).map(issue => (
-                  <Table.Tr key={issue.id}>
-                    <Table.Td>{issue.id}</Table.Td>
-                    <Table.Td>{issue.tracker}</Table.Td>
-                    <Table.Td>{issue.subject}</Table.Td>
-                    <Table.Td>{issue.resolved_date}</Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-            {issues.length > 10 && (
-              <Text size="xs" c="gray" mt="xs">... 共 {issues.length} 条</Text>
-            )}
-          </Paper>
-        )}
-
-        <Group justify="flex-end">
-          <Button
-            color="dark"
-            onClick={handleGenerate}
-            disabled={!selectedProjects || selectedProjects.length === 0 || loading}
-            loading={loading}
-          >
-            生成
-          </Button>
-          <Button variant="subtle" color="dark" onClick={onClose} disabled={loading}>取消</Button>
-        </Group>
-      </Stack>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 };
