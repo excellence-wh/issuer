@@ -1,4 +1,5 @@
-import { apiReference } from '@scalar/hono-api-reference'
+import { serve } from '@hono/node-server'
+import { Scalar } from '@scalar/hono-api-reference'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { openapi } from './openapi.js'
@@ -18,7 +19,7 @@ app.get('/', (c) => {
 
 app.route('/api', apiRouter)
 
-app.get('/docs', apiReference({
+app.get('/docs', Scalar({
   spec: {
     content: openapi
   },
@@ -34,8 +35,10 @@ app.get('/docs', apiReference({
   }
 }))
 
-export default {
-  port: 3001,
-  idleTimeout: 120,
-  fetch: app.fetch
-}
+const port = 3001
+console.log(`Server is running on port ${port}`)
+
+serve({
+  fetch: app.fetch,
+  port
+})

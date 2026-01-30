@@ -23,12 +23,16 @@ hgRouter.get('/changeset', async (c) => {
 hgRouter.get('/files', async (c) => {
   const issueNumber = c.req.query('issue')
   const repoPath = c.req.query('repoPath')
+  const allHistory = c.req.query('allHistory') === 'true'
 
   if (!issueNumber || !repoPath) {
     return c.json({ success: false, error: 'Missing issue or repoPath parameter' }, 400)
   }
 
-  const files = await hgService.getFilesByIssue(issueNumber, repoPath)
+  const files = allHistory 
+    ? await hgService.getAllFilesByIssue(issueNumber, repoPath)
+    : await hgService.getFilesByIssue(issueNumber, repoPath)
+  
   return c.json({ success: true, data: files })
 })
 

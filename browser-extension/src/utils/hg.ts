@@ -40,11 +40,10 @@ export const getHgChangesetByIssue = async (issueNumber: string, repoPath: strin
   }
 }
 
-export const getHgFilesByIssue = async (issueNumber: string, repoPath: string): Promise<HgFileChange[]> => {
+export const getHgFilesByIssue = async (issueNumber: string, repoPath: string, allHistory: boolean = false): Promise<HgFileChange[]> => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/hg/files?issue=${encodeURIComponent(issueNumber)}&repoPath=${encodeURIComponent(repoPath)}`
-    )
+    const url = `${API_BASE_URL}/api/hg/files?issue=${encodeURIComponent(issueNumber)}&repoPath=${encodeURIComponent(repoPath)}${allHistory ? '&allHistory=true' : ''}`
+    const response = await fetch(url)
     const data = await response.json()
     return data.success ? data.data : []
   } catch (error) {
@@ -102,6 +101,10 @@ export const parseDiffToFiles = (diff: string): { filename: string; content: str
   }
 
   return files
+}
+
+export const getAllHgFilesByIssue = async (issueNumber: string, repoPath: string): Promise<HgFileChange[]> => {
+  return getHgFilesByIssue(issueNumber, repoPath, true)
 }
 
 export const getFileChangesSummary = (files: HgFileChange[]): string => {

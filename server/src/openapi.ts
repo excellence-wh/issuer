@@ -101,10 +101,11 @@ export const openapi = {
       get: {
         tags: ['Mercurial'],
         summary: 'Get files by issue',
-        description: 'Retrieve list of files changed in a specific issue',
+        description: 'Retrieve list of files changed in a specific issue. Use allHistory=true to get all historical file changes for this issue.',
         parameters: [
           { name: 'issue', in: 'query', required: true, schema: { type: 'string' }, description: 'Redmine issue number' },
-          { name: 'repoPath', in: 'query', required: true, schema: { type: 'string' }, description: 'Path to Mercurial repository' }
+          { name: 'repoPath', in: 'query', required: true, schema: { type: 'string' }, description: 'Path to Mercurial repository' },
+          { name: 'allHistory', in: 'query', required: false, schema: { type: 'boolean', default: false }, description: 'Get all historical file changes for this issue (true) or only latest commit (false)' }
         ],
         responses: {
           '200': { description: 'Success' },

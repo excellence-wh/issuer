@@ -18,23 +18,3 @@ export interface HgApiResponse<T> {
   data?: T
   error?: string
 }
-
-export interface FileDiff {
-  path: string
-  diff: string
-}
-
-export interface IssueInfo {
-  revision: string
-  node: string
-  author: string
-  date: string
-  summary: string
-  files: FileChangeInfo[]
-}
-
-export interface FileChangeInfo {
-  path: string
-  status: string
-  revision: string
-}

@@ -37,7 +37,47 @@ interface UsageInfo {
   aiUsage: string;
 }
 
-const DEFAULT_REPO_PATH = "D:/projects/CRM";
+const PROJECT_PATH_MAP: Record<string, string> = {
+  crm: "D:/projects/CRM",
+  esb: "D:/projects/ESB",
+  hrm: "D:/projects/HRM",
+  "hrm-2-0": "D:/projects/HRM-2.0",
+  bpm: "D:/projects/BPM",
+  aquarius: "D:/projects/Aquarius",
+  rda: "D:/projects/RDA",
+}
+
+const getProjectFromPage = (): string | null => {
+  // 从 URL 路径中提取项目名，例如 /redmine/projects/esb/issues
+  const pathMatch = window.location.pathname.match(/\/projects\/([^\/]+)/)
+  if (pathMatch) {
+    return pathMatch[1].toLowerCase()
+  }
+  
+  // 备选：从页面标题或选择器中获取
+  const projectSelect = document.querySelector('#project_quick_jump_box') as HTMLSelectElement
+  if (projectSelect) {
+    const selectedOption = projectSelect.querySelector('option[selected]')
+    if (selectedOption) {
+      const value = selectedOption.getAttribute('value') || ''
+      const match = value.match(/\/projects\/([^?/]+)/)
+      if (match) {
+        return match[1].toLowerCase()
+      }
+    }
+  }
+  
+  return null
+}
+
+const getRepoPath = (): string => {
+  const project = getProjectFromPage()
+  if (project && PROJECT_PATH_MAP[project]) {
+    return PROJECT_PATH_MAP[project]
+  }
+  // 默认回退到 CRM
+  return "D:/projects/CRM"
+}
 
 const getUsageFromPage = (): UsageInfo | null => {
   try {
@@ -311,9 +351,12 @@ export const IssueReportModal = ({
     setHgError(null);
 
     try {
+      const repoPath = getRepoPath();
+      console.log(`Fetching HG data for issue ${issueId} from ${repoPath}`);
+      
       const [fileList] = await Promise.all([
-        getHgFilesByIssue(issueId, DEFAULT_REPO_PATH),
-        getHgFilesDiffByIssue(issueId, DEFAULT_REPO_PATH),
+        getHgFilesByIssue(issueId, repoPath),
+        getHgFilesDiffByIssue(issueId, repoPath),
       ]);
 
       setHgFiles(fileList);

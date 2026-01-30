@@ -39,3 +39,9 @@ coverage
 
 # TypeScript
 *.tsbuildinfo
+
+bun.lock
+pnpm-lock.yaml
+nul
+browser-extension/pnpm-lock.yaml
+server/pnpm-lock.yaml

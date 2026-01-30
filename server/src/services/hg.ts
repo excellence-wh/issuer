@@ -1,6 +1,6 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import type { IssueInfo, FileChangeInfo } from '../types/hg.js'
+import type { FileChangeInfo, IssueInfo } from '../types/hg'
 
 const execAsync = promisify(exec)
 
@@ -12,17 +12,61 @@ async function runHgCommand(args: string, repoPath: string): Promise<string> {
   return stdout || stderr
 }
 
-async function findChangesetByIssue(issueNumber: string, repoPath: string): Promise<string | null> {
+async function verifyIssueInChangeset(revision: string, issueNumber: string, repoPath: string): Promise<boolean> {
   try {
-    const output = await runHgCommand(
-      `log --keyword ${issueNumber} -l 1`,
+    const descOutput = await runHgCommand(
+      `log -r ${revision} --template "{desc}"`,
       repoPath
     )
-    const lines = output.split('\n')
+    const desc = descOutput.trim()
+    // 检查是否包含完整的issue号，支持多种格式：#92520, issue 92520, issue(92520), 92520 & 92380 等
+    // 匹配完整单词边界的issue号，避免 92520 匹配到 192520 或 925201
+    const exactPattern = new RegExp(`(?:#|issue\\s*\\(?\\s*)?\\b${issueNumber}\\b(?!\\d)`, 'i')
+    return exactPattern.test(desc)
+  } catch {
+    return false
+  }
+}
+
+async function findAllChangesetsByIssue(issueNumber: string, repoPath: string): Promise<string[]> {
+  try {
+    const output = await runHgCommand(
+      `log --keyword ${issueNumber} --template "{rev}:{node|short} {desc|firstline}\\n"`,
+      repoPath
+    )
+    const lines = output.trim().split('\n').filter(line => line.trim())
+    const revisions: string[] = []
     for (const line of lines) {
       const match = line.match(/(\d+):([a-f0-9]+)/)
       if (match) {
-        return match[1]
+        const revision = match[1]
+        // 验证提交消息中确实包含完整的issue号
+        if (await verifyIssueInChangeset(revision, issueNumber, repoPath)) {
+          revisions.push(revision)
+        }
+      }
+    }
+    return revisions
+  } catch {
+    return []
+  }
+}
+
+async function findChangesetByIssue(issueNumber: string, repoPath: string): Promise<string | null> {
+  try {
+    const output = await runHgCommand(
+      `log --keyword ${issueNumber} --template "{rev}:{node|short} {desc|firstline}\\n"`,
+      repoPath
+    )
+    const lines = output.split('\n').filter(line => line.trim())
+    for (const line of lines) {
+      const match = line.match(/(\d+):([a-f0-9]+)/)
+      if (match) {
+        const revision = match[1]
+        // 验证提交消息中确实包含完整的issue号
+        if (await verifyIssueInChangeset(revision, issueNumber, repoPath)) {
+          return revision
+        }
       }
     }
     return null
@@ -116,6 +160,45 @@ async function getFilesDiffByIssue(issueNumber: string, repoPath: string): Promi
   }
 }
 
+async function getAllFilesByIssue(issueNumber: string, repoPath: string): Promise<FileChangeInfo[]> {
+  try {
+    const revisions = await findAllChangesetsByIssue(issueNumber, repoPath)
+    if (revisions.length === 0) return []
+
+    const allFiles: FileChangeInfo[] = []
+    
+    for (const revision of revisions) {
+      const statOutput = await runHgCommand(
+        `status --change ${revision}`,
+        repoPath
+      )
+
+      const lines = statOutput.trim().split('\n').filter(l => l.trim())
+      const files = lines.map(line => {
+        const status = line.substring(0, 1)
+        const path = line.substring(2).trim()
+        return { path, status, revision }
+      })
+      
+      allFiles.push(...files)
+    }
+
+    // 按文件路径去重，保留最新的变更状态
+    const fileMap = new Map<string, FileChangeInfo>()
+    for (const file of allFiles) {
+      const existing = fileMap.get(file.path)
+      // 如果文件已存在，比较revision号，保留较大的（更新的）
+      if (!existing || Number(file.revision) > Number(existing.revision)) {
+        fileMap.set(file.path, file)
+      }
+    }
+    
+    return Array.from(fileMap.values())
+  } catch {
+    return []
+  }
+}
+
 async function getAllIssueNumbers(repoPath: string): Promise<string[]> {
   try {
     const logOutput = await runHgCommand(
@@ -142,6 +225,7 @@ export const hgService = {
   runHgCommand,
   getChangesetByIssue,
   getFilesByIssue,
+  getAllFilesByIssue,
   getFilesDiffByIssue,
   getAllIssueNumbers
 }

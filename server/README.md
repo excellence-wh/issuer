@@ -1,49 +1,70 @@
-To install dependencies:
-```sh
-bun install
-```
+# Excellence Issuer Server
 
-To run:
-```sh
-bun run dev
-```
+Node.js + Hono.js API server with Mercurial integration.
 
-open http://localhost:3001
+## Installation
 
-## Windows Service Deployment
-
-### Install as Windows Service
-1. Run PowerShell as Administrator
-2. Execute the installation script:
-```powershell
+```bash
 cd D:\excellence.wh\projects\issuer\server
-.\scripts\install-service.ps1
+npm install
 ```
 
-### Service Management
-```powershell
-# Start service
-Start-Service ExcellenceIssuerServer
+## Development
 
-# Stop service
-Stop-Service ExcellenceIssuerServer
-
-# Check status
-Get-Service ExcellenceIssuerServer
-
-# View logs
-Get-Content "D:\excellence.wh\projects\issuer\server\logs\service.log" -Wait
+```bash
+npm run dev    # Development with hot reload (tsx watch)
 ```
 
-### Uninstall Service
-```powershell
-cd D:\excellence.wh\projects\issuer\server
-.\scripts\uninstall-service.ps1
+Open http://localhost:3001
+
+## Production Deployment (PM2)
+
+### Quick Deploy (推荐)
+
+```bash
+# 仅构建并重启（不拉取代码）
+npm run deploy
+
+# 拉取最新代码 + 构建 + 重启
+npm run deploy:pull
 ```
 
-### Service Configuration
-- Service Name: ExcellenceIssuerServer
-- Port: 3001
-- Working Directory: D:\excellence.wh\projects\issuer\server
-- Startup Type: Automatic (starts with Windows)
-- Logs Location: D:\excellence.wh\projects\issuer\server\logs\
+### Manual Steps
+
+```bash
+# 1. Build
+npm run build
+
+# 2. Start with PM2
+pm2 start dist/server.js --name excellence-server
+
+# 3. Enable auto-start (Windows)
+pm2 save
+npm run windows:setup-autostart  # Requires Administrator
+```
+
+### PM2 Commands
+```bash
+pm2 start excellence-server      # Start
+pm2 stop excellence-server       # Stop
+pm2 restart excellence-server    # Restart
+pm2 logs excellence-server       # View logs
+pm2 monit                        # Monitor
+pm2 delete excellence-server     # Remove
+```
+
+## Available Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Development mode with hot reload |
+| `npm start` | Run directly with tsx |
+| `npm run build` | Build to dist/server.js |
+| `npm run deploy` | Deploy with PM2 (build + restart) |
+| `npm run deploy:pull` | Pull code + deploy |
+| `npm run windows:setup-autostart` | Setup Windows auto-start |
+| `npm test` | Run tests |
+
+## API Documentation
+
+Open http://localhost:3001/docs after starting the server.
