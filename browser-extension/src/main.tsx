@@ -21,6 +21,10 @@ const mountApp = () => {
     return;
   }
 
+  // 从 localStorage 读取主题设置
+  const stored = localStorage.getItem('issuer-color-scheme');
+  const initialColorScheme = stored === 'dark' ? 'dark' : 'light';
+
   const root = document.createElement('div');
   root.id = rootId;
   root.style.cssText = 'position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647; pointer-events: none;';
@@ -28,7 +32,7 @@ const mountApp = () => {
 
   const rootContainer = createRoot(root);
   rootContainer.render(
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={theme} defaultColorScheme={initialColorScheme}>
       <App />
     </MantineProvider>,
   );

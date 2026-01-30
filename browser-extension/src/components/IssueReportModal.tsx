@@ -487,7 +487,7 @@ export const IssueReportModal = ({
 
       {issueData && (
         <Stack gap="md">
-          <Paper p="sm" bg="gray.0" withBorder>
+          <Paper p="sm" withBorder>
             <Group gap="xs" wrap="wrap">
               <Text size="sm" fw={500}>
                 #{issueData.id}

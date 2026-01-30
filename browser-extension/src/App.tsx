@@ -1,5 +1,6 @@
-import { Badge, Button, Paper, Stack } from '@mantine/core';
+import { ActionIcon, Badge, Button, Paper, Stack, Tooltip, useMantineColorScheme } from '@mantine/core';
 import '@mantine/core/styles.css';
+import { IconMoon, IconSun } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import { IssueReportModal } from './components/IssueReportModal';
@@ -77,6 +78,7 @@ const FloatingBall = () => {
   const [showIssueReport, setShowIssueReport] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
   const [usageWarning, setUsageWarning] = useState(false);
+  const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   const cleanupBall = useCallback(() => {
     const ball = document.getElementById('excellence-floating-ball');
@@ -103,6 +105,7 @@ const FloatingBall = () => {
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     checkUsage();
     cleanupBall();
 
@@ -122,8 +125,10 @@ const FloatingBall = () => {
     ball.style.alignItems = 'center';
     ball.style.justifyContent = 'center';
     ball.style.borderRadius = '50%';
-    ball.style.background = 'white';
-    ball.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    ball.style.background = colorScheme === 'dark' ? '#2c2e33' : 'white';
+    ball.style.boxShadow = colorScheme === 'dark' 
+      ? '0 4px 12px rgba(0,0,0,0.4)' 
+      : '0 4px 12px rgba(0,0,0,0.15)';
     ball.style.transition = 'transform 0.2s, box-shadow 0.2s';
 
     ball.onmouseenter = () => {
@@ -133,10 +138,13 @@ const FloatingBall = () => {
 
     ball.onmouseleave = () => {
       ball.style.transform = 'scale(1)';
-      ball.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+      ball.style.boxShadow = colorScheme === 'dark'
+        ? '0 4px 12px rgba(0,0,0,0.4)'
+        : '0 4px 12px rgba(0,0,0,0.15)';
     };
 
-    ball.onclick = () => {
+    ball.onclick = (e) => {
+      e.stopPropagation();
       setShowMenu(prev => !prev);
     };
 
@@ -148,7 +156,7 @@ const FloatingBall = () => {
       clearInterval(interval);
       cleanupBall();
     };
-  }, [cleanupBall, checkUsage, usageWarning]);
+  }, [cleanupBall, checkUsage, usageWarning, colorScheme]);
 
   if (!isRedmineSite()) return null;
 
@@ -178,6 +186,21 @@ const FloatingBall = () => {
                 <Button variant="subtle" color="dark" onClick={() => { setShowMenu(false); setShowWeeklyReport(true); }}>
                   Weekly Report
                 </Button>
+                <Tooltip label={colorScheme === 'dark' ? '切换到浅色模式' : '切换到暗黑模式'} position="left" withArrow>
+                  <ActionIcon 
+                    variant="subtle" 
+                    color="gray" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newScheme = colorScheme === 'dark' ? 'light' : 'dark';
+                      setColorScheme(newScheme);
+                      localStorage.setItem('issuer-color-scheme', newScheme);
+                    }}
+                    size="lg"
+                  >
+                    {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
+                  </ActionIcon>
+                </Tooltip>
               </Stack>
             </Paper>
           </div>
