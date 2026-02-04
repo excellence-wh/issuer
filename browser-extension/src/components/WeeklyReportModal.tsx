@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { utils, write } from 'xlsx-js-style';
 import { formatDateForInput, getPeriodForDate } from '../utils/date';
+import { showToast } from '../App';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -98,7 +99,9 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
       }
     } catch (err) {
       console.error('Failed to fetch projects:', err);
-      setError('获取项目列表失败，请检查后端服务是否启动');
+      const errorMsg = '获取项目列表失败，请检查后端服务是否启动';
+      setError(errorMsg);
+      showToast('error', '网络错误', errorMsg);
     }
   };
 
@@ -210,8 +213,11 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
       URL.revokeObjectURL(link.href);
 
       setSuccess(true);
+      showToast('success', '周报生成成功', `已生成 ${selectedProjects.length} 个项目的周报`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '生成报告失败');
+      const errorMsg = err instanceof Error ? err.message : '生成报告失败';
+      setError(errorMsg);
+      showToast('error', '周报生成失败', errorMsg);
     } finally {
       setLoading(false);
     }
@@ -292,8 +298,8 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
     : '选择项目';
 
   return (
-    <Dialog open={opened} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-4xl">
+      <Dialog open={opened} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Weekly 报告</DialogTitle>
           <DialogDescription>
@@ -329,7 +335,7 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
           </Alert>
         )}
 
-        <div className="space-y-4 mt-4">
+        <div className="space-y-4 mt-4 overflow-y-auto max-h-[calc(85vh-180px)] pr-2">
           <div className="space-y-2">
             <Label>项目</Label>
             <Popover open={openProjects} onOpenChange={setOpenProjects}>
@@ -395,7 +401,7 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
           </div>
 
           {isCustomPeriod && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>开始日期</Label>
                 <Input
@@ -424,22 +430,22 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>No.</TableHead>
-                      <TableHead>Tracker</TableHead>
-                      <TableHead>Subject</TableHead>
-                      <TableHead>Resolved Date</TableHead>
+                      <TableHead className="whitespace-nowrap">No.</TableHead>
+                      <TableHead className="whitespace-nowrap hidden sm:table-cell">Tracker</TableHead>
+                      <TableHead className="w-[200px]">Subject</TableHead>
+                      <TableHead className="whitespace-nowrap hidden md:table-cell">Resolved Date</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {issues.slice(0, 10).map(issue => (
-                      <TableRow key={issue.id}>
-                        <TableCell>{issue.id}</TableCell>
-                        <TableCell>{issue.tracker}</TableCell>
-                        <TableCell>{issue.subject}</TableCell>
-                        <TableCell>{issue.resolved_date}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
+              <TableBody>
+                {issues.slice(0, 10).map(issue => (
+                  <TableRow key={issue.id}>
+                    <TableCell className="whitespace-nowrap">{issue.id}</TableCell>
+                    <TableCell className="whitespace-nowrap hidden sm:table-cell">{issue.tracker}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">{issue.subject}</TableCell>
+                    <TableCell className="whitespace-nowrap hidden md:table-cell">{issue.resolved_date}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
                 </Table>
                 {issues.length > 10 && (
                   <p className="text-xs text-gray-500 mt-2">... 共 {issues.length} 条</p>

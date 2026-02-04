@@ -1,15 +1,20 @@
-import { BarChart3, FileText, Moon, Sun } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { BarChart3, FileText, Moon, Sun, X, PieChart } from 'lucide-react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import './App.css';
 import { IssueReportModal } from './components/IssueReportModal';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DashboardModal } from './components/DashboardModal';
+import { ToastContainer } from './components/ui/toast';
+import { useToast } from './hooks/useToast';
+
+// 创建全局 Toast 状态管理
+let globalAddToast: ReturnType<typeof useToast>['addToast'] | null = null;
+
+export function showToast(type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string) {
+  if (globalAddToast) {
+    globalAddToast({ type, title, message, duration: type === 'error' ? 5000 : 4000 });
+  }
+}
 
 const isIssuePage = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -82,11 +87,43 @@ const FloatingBall = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [showIssueReport, setShowIssueReport] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [usageWarning, setUsageWarning] = useState(false);
-  const [selectedValue, setSelectedValue] = useState("");
   const [isDark, setIsDark] = useState(() => {
     return localStorage.getItem('issuer-color-scheme') === 'dark';
   });
+  const menuRef = useRef<HTMLDivElement>(null);
+  
+  // Toast 通知
+  const { toasts, addToast, removeToast } = useToast();
+  
+  // 注册全局 Toast 函数
+  useEffect(() => {
+    globalAddToast = addToast;
+    return () => {
+      globalAddToast = null;
+    };
+  }, [addToast]);
+
+  // 拖拽状态
+  const [position, setPosition] = useState(() => {
+    const saved = localStorage.getItem('floating-ball-position');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return { x: null, y: null };
+      }
+    }
+    return { x: null, y: null };
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const [hasDragged, setHasDragged] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const ballStartRef = useRef<{ x: number; y: number } | null>(null);
+  const ballRef = useRef<HTMLDivElement | null>(null);
+  const hasShownWarningRef = useRef(false);
 
   const cleanupBall = useCallback(() => {
     const ball = document.getElementById('excellence-floating-ball');
@@ -96,25 +133,38 @@ const FloatingBall = () => {
   const checkUsage = useCallback(() => {
     if (!isIssuePage()) {
       setUsageWarning(false);
+      hasShownWarningRef.current = false;
       return;
     }
 
     const usage = getUsageFromPage();
     if (usage && (usage.aiUsage === '' || usage.aiUsage === '0')) {
       setUsageWarning(true);
+      // 只显示一次 Toast 提醒
+      if (!hasShownWarningRef.current) {
+        addToast({
+          type: 'warning',
+          title: 'AI Usage 未填写',
+          message: '请在 Redmine 页面填写 AI Usage 百分比后再生成报告',
+          duration: 6000,
+        });
+        hasShownWarningRef.current = true;
+      }
     } else {
       setUsageWarning(false);
+      hasShownWarningRef.current = false;
     }
-  }, []);
+  }, [addToast]);
 
   const handleMenuSelect = (value: string) => {
-    setSelectedValue(value);
     setShowMenu(false);
     
     if (value === "issue") {
       setShowIssueReport(true);
     } else if (value === "weekly") {
       setShowWeeklyReport(true);
+    } else if (value === "dashboard") {
+      setShowDashboard(true);
     } else if (value === "theme") {
       const newScheme = isDark ? 'light' : 'dark';
       setIsDark(!isDark);
@@ -126,6 +176,65 @@ const FloatingBall = () => {
       }
     }
   };
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showMenu]);
+
+  // 键盘快捷键
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isCmdOrCtrl = event.metaKey || event.ctrlKey;
+      
+      // Ctrl/Cmd + Shift + I: 打开 Issue Report
+      if (isCmdOrCtrl && event.shiftKey && event.key === 'I') {
+        event.preventDefault();
+        setShowMenu(false);
+        setShowIssueReport(true);
+      }
+      
+      // Ctrl/Cmd + Shift + W: 打开 Weekly Report
+      if (isCmdOrCtrl && event.shiftKey && event.key === 'W') {
+        event.preventDefault();
+        setShowMenu(false);
+        setShowWeeklyReport(true);
+      }
+      
+      // Ctrl/Cmd + Shift + D: 打开 Dashboard
+      if (isCmdOrCtrl && event.shiftKey && event.key === 'D') {
+        event.preventDefault();
+        setShowMenu(false);
+        setShowDashboard(true);
+      }
+      
+      // Esc: 关闭弹窗或菜单
+      if (event.key === 'Escape') {
+        // 关闭优先级：弹窗 > 菜单
+        if (showIssueReport) {
+          setShowIssueReport(false);
+        } else if (showWeeklyReport) {
+          setShowWeeklyReport(false);
+        } else if (showDashboard) {
+          setShowDashboard(false);
+        } else if (showMenu) {
+          setShowMenu(false);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showIssueReport, showWeeklyReport, showMenu]);
 
   useEffect(() => {
     if (!isRedmineSite()) {
@@ -141,10 +250,8 @@ const FloatingBall = () => {
     ball.className = 'floating-ball';
     ball.textContent = usageWarning ? '⚠️' : '📊';
     ball.style.position = 'fixed';
-    ball.style.bottom = '20px';
-    ball.style.right = '20px';
     ball.style.zIndex = '2147483647';
-    ball.style.cursor = 'pointer';
+    ball.style.cursor = 'grab';
     ball.style.fontSize = '28px';
     ball.style.width = '50px';
     ball.style.height = '50px';
@@ -157,23 +264,167 @@ const FloatingBall = () => {
       ? '0 4px 12px rgba(0,0,0,0.4)' 
       : '0 4px 12px rgba(0,0,0,0.15)';
     ball.style.transition = 'transform 0.2s, box-shadow 0.2s';
+    ball.style.userSelect = 'none';
+    ball.style.touchAction = 'none';
 
+    // 应用保存的位置或使用默认位置
+    if (position.x !== null && position.y !== null) {
+      ball.style.left = `${position.x}px`;
+      ball.style.top = `${position.y}px`;
+    } else {
+      ball.style.bottom = '20px';
+      ball.style.right = '20px';
+    }
+
+    ballRef.current = ball;
+
+    // 拖拽处理函数
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      setIsDragging(true);
+      setHasDragged(false);
+      ball.style.cursor = 'grabbing';
+      ball.style.transition = 'none';
+      
+      const rect = ball.getBoundingClientRect();
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
+      ballStartRef.current = { x: rect.left, y: rect.top };
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      
+      const touch = e.touches[0];
+      setIsDragging(true);
+      setHasDragged(false);
+      ball.style.transition = 'none';
+      
+      const rect = ball.getBoundingClientRect();
+      dragStartRef.current = { x: touch.clientX, y: touch.clientY };
+      ballStartRef.current = { x: rect.left, y: rect.top };
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !dragStartRef.current || !ballStartRef.current) return;
+      
+      const deltaX = e.clientX - dragStartRef.current.x;
+      const deltaY = e.clientY - dragStartRef.current.y;
+      
+      // 如果移动超过 5px，认为是拖拽而不是点击
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+        setHasDragged(true);
+      }
+      
+      let newX = ballStartRef.current.x + deltaX;
+      let newY = ballStartRef.current.y + deltaY;
+      
+      // 边界限制
+      const maxX = window.innerWidth - 50;
+      const maxY = window.innerHeight - 50;
+      newX = Math.max(0, Math.min(newX, maxX));
+      newY = Math.max(0, Math.min(newY, maxY));
+      
+      ball.style.left = `${newX}px`;
+      ball.style.top = `${newY}px`;
+      ball.style.bottom = 'auto';
+      ball.style.right = 'auto';
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging || !dragStartRef.current || !ballStartRef.current) return;
+      
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - dragStartRef.current.x;
+      const deltaY = touch.clientY - dragStartRef.current.y;
+      
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+        setHasDragged(true);
+      }
+      
+      let newX = ballStartRef.current.x + deltaX;
+      let newY = ballStartRef.current.y + deltaY;
+      
+      const maxX = window.innerWidth - 50;
+      const maxY = window.innerHeight - 50;
+      newX = Math.max(0, Math.min(newX, maxX));
+      newY = Math.max(0, Math.min(newY, maxY));
+      
+      ball.style.left = `${newX}px`;
+      ball.style.top = `${newY}px`;
+      ball.style.bottom = 'auto';
+      ball.style.right = 'auto';
+    };
+
+    const handleMouseUp = () => {
+      if (!isDragging) return;
+      
+      setIsDragging(false);
+      ball.style.cursor = 'grab';
+      ball.style.transition = 'transform 0.2s, box-shadow 0.2s';
+      
+      // 保存位置
+      const rect = ball.getBoundingClientRect();
+      const newPos = { x: rect.left, y: rect.top };
+      setPosition(newPos);
+      localStorage.setItem('floating-ball-position', JSON.stringify(newPos));
+      
+      // 如果没有拖拽（只是点击），则切换菜单
+      if (!hasDragged) {
+        const rect = ball.getBoundingClientRect();
+        setMenuPosition({ top: rect.top, left: rect.left + rect.width / 2 });
+        setShowMenu(prev => !prev);
+      }
+      
+      dragStartRef.current = null;
+      ballStartRef.current = null;
+    };
+
+    const handleTouchEnd = () => {
+      if (!isDragging) return;
+      
+      setIsDragging(false);
+      ball.style.transition = 'transform 0.2s, box-shadow 0.2s';
+      
+      const rect = ball.getBoundingClientRect();
+      const newPos = { x: rect.left, y: rect.top };
+      setPosition(newPos);
+      localStorage.setItem('floating-ball-position', JSON.stringify(newPos));
+      
+      if (!hasDragged) {
+        setMenuPosition({ top: rect.top, left: rect.left + rect.width / 2 });
+        setShowMenu(prev => !prev);
+      }
+      
+      dragStartRef.current = null;
+      ballStartRef.current = null;
+    };
+
+    // 悬停效果
     ball.onmouseenter = () => {
-      ball.style.transform = 'scale(1.1)';
-      ball.style.boxShadow = '0 6px 20px rgba(0,0,0,0.25)';
+      if (!isDragging) {
+        ball.style.transform = 'scale(1.1)';
+        ball.style.boxShadow = '0 6px 20px rgba(0,0,0,0.25)';
+      }
     };
 
     ball.onmouseleave = () => {
-      ball.style.transform = 'scale(1)';
-      ball.style.boxShadow = isDark
-        ? '0 4px 12px rgba(0,0,0,0.4)'
-        : '0 4px 12px rgba(0,0,0,0.15)';
+      if (!isDragging) {
+        ball.style.transform = 'scale(1)';
+        ball.style.boxShadow = isDark
+          ? '0 4px 12px rgba(0,0,0,0.4)'
+          : '0 4px 12px rgba(0,0,0,0.15)';
+      }
     };
 
-    ball.onclick = (e) => {
-      e.stopPropagation();
-      setShowMenu(prev => !prev);
-    };
+    // 绑定事件
+    ball.addEventListener('mousedown', handleMouseDown);
+    ball.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchend', handleTouchEnd);
 
     document.body.appendChild(ball);
 
@@ -181,76 +432,282 @@ const FloatingBall = () => {
 
     return () => {
       clearInterval(interval);
+      ball.removeEventListener('mousedown', handleMouseDown);
+      ball.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchend', handleTouchEnd);
       cleanupBall();
     };
-  }, [cleanupBall, checkUsage, usageWarning, isDark]);
+  }, [cleanupBall, checkUsage, usageWarning, isDark, isDragging, hasDragged, position]);
 
   if (!isRedmineSite()) return null;
 
   return (
     <>
-      {/* shadcn Select 作为下拉菜单 */}
-      <div 
+      {/* 弹出式菜单 */}
+      <div
+        ref={menuRef}
         style={{
           position: 'fixed',
-          bottom: '80px',
-          right: '20px',
+          bottom: 'auto',
+          right: 'auto',
+          top: menuPosition ? `${menuPosition.top - 8}px` : '80px',
+          left: menuPosition ? `${menuPosition.left}px` : 'auto',
+          transform: 'translateX(-50%) translateY(-100%)',
           zIndex: 2147483646,
           opacity: showMenu ? 1 : 0,
           pointerEvents: showMenu ? 'auto' : 'none',
-          transition: 'opacity 0.2s ease'
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          marginTop: showMenu ? '0' : '10px',
         }}
       >
-        <Select 
-          value={selectedValue} 
-          onValueChange={handleMenuSelect}
-          open={showMenu}
-          onOpenChange={setShowMenu}
+        <div
+          style={{
+            minWidth: '200px',
+            background: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(12px)',
+            borderRadius: '16px',
+            border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'}`,
+            boxShadow: isDark
+              ? '0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+              : '0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.02)',
+            padding: '8px',
+            overflow: 'hidden',
+          }}
         >
-          <SelectTrigger 
-            style={{ 
-              width: '180px',
-              background: isDark ? '#1e293b' : 'white',
-              borderColor: isDark ? '#334155' : '#e2e8f0',
-              color: isDark ? '#e2e8f0' : '#1e293b'
+          {/* 菜单头部 */}
+          <div
+            style={{
+              padding: '12px 16px',
+              borderBottom: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)'}`,
+              marginBottom: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
             }}
           >
-            <SelectValue placeholder={usageWarning ? "⚠️ 请填写 AI Usage" : "📊 选择功能"} />
-          </SelectTrigger>
-          <SelectContent 
-            style={{ 
-              background: isDark ? '#1e293b' : 'white',
-              borderColor: isDark ? '#334155' : '#e2e8f0'
+            <span
+              style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: isDark ? '#94a3b8' : '#64748b',
+                letterSpacing: '0.3px',
+              }}
+            >
+              {usageWarning ? '⚠️ 请填写 AI Usage' : '选择功能'}
+            </span>
+            <button
+              onClick={() => setShowMenu(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: isDark ? '#94a3b8' : '#94a3b8',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+                e.currentTarget.style.color = isDark ? '#e2e8f0' : '#475569';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = isDark ? '#94a3b8' : '#94a3b8';
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* 菜单项 */}
+          <button
+            onClick={() => handleMenuSelect('issue')}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              border: 'none',
+              borderRadius: '12px',
+              background: 'transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              transition: 'all 0.15s ease',
+              color: isDark ? '#e2e8f0' : '#1e293b',
+              fontSize: '14px',
+              fontWeight: 500,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(59, 130, 246, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
             }}
           >
-            <SelectItem value="issue">
-              <div className="flex items-center gap-2">
-                <FileText size={16} className={isDark ? 'text-blue-400' : 'text-blue-600'} />
-                <span>Issue Report</span>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                background: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <FileText size={16} style={{ color: '#3b82f6' }} />
+            </div>
+            <span>Issue Report</span>
+          </button>
+
+          <button
+            onClick={() => handleMenuSelect('weekly')}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              border: 'none',
+              borderRadius: '12px',
+              background: 'transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              transition: 'all 0.15s ease',
+              color: isDark ? '#e2e8f0' : '#1e293b',
+              fontSize: '14px',
+              fontWeight: 500,
+              marginTop: '4px',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(34, 197, 94, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                background: isDark ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <BarChart3 size={16} style={{ color: '#22c55e' }} />
+            </div>
+            <span>Weekly Report</span>
+          </button>
+
+            <button
+              onClick={() => handleMenuSelect('dashboard')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: 'none',
+                borderRadius: '12px',
+                background: 'transparent',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                transition: 'all 0.15s ease',
+                color: isDark ? '#e2e8f0' : '#1e293b',
+                fontSize: '14px',
+                fontWeight: 500,
+                marginTop: '4px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(168, 85, 247, 0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  background: isDark ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <PieChart size={16} style={{ color: '#a855f7' }} />
               </div>
-            </SelectItem>
-            <SelectItem value="weekly">
-              <div className="flex items-center gap-2">
-                <BarChart3 size={16} className={isDark ? 'text-green-400' : 'text-green-600'} />
-                <span>Weekly Report</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="theme">
-              <div className="flex items-center gap-2">
-                {isDark ? (
-                  <Sun size={16} className="text-amber-400" />
-                ) : (
-                  <Moon size={16} className="text-indigo-500" />
-                )}
-                <span>{isDark ? '浅色模式' : '暗黑模式'}</span>
-              </div>
-            </SelectItem>
-          </SelectContent>
-        </Select>
+              <span>数据统计</span>
+            </button>
+
+            <div
+              style={{
+                height: '1px',
+                background: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+                margin: '8px 12px',
+              }}
+            />
+
+            <button
+              onClick={() => handleMenuSelect('theme')}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              border: 'none',
+              borderRadius: '12px',
+              background: 'transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              transition: 'all 0.15s ease',
+              color: isDark ? '#e2e8f0' : '#1e293b',
+              fontSize: '14px',
+              fontWeight: 500,
+            }}
+            onMouseEnter={(e) =>{
+              e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(99, 102, 241, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                background: isDark ? 'rgba(251, 191, 36, 0.2)' : 'rgba(99, 102, 241, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {isDark ? (
+                <Sun size={16} style={{ color: '#fbbf24' }} />
+              ) : (
+                <Moon size={16} style={{ color: '#6366f1' }} />
+              )}
+            </div>
+            <span>{isDark ? '切换浅色模式' : '切换深色模式'}</span>
+          </button>
+        </div>
       </div>
 
       <IssueReportModal opened={showIssueReport} onClose={() => setShowIssueReport(false)} />
       <WeeklyReportModal opened={showWeeklyReport} onClose={() => setShowWeeklyReport(false)} />
+      <DashboardModal opened={showDashboard} onClose={() => setShowDashboard(false)} />
+      
+      {/* Toast 通知容器 */}
+      <ToastContainer toasts={toasts} onClose={removeToast} isDark={isDark} />
     </>
   );
 };

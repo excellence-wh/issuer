@@ -2,16 +2,16 @@ export const getCurrentPeriod = (): { startDate: Date; endDate: Date; periodLabe
   const today = new Date()
   const dayOfWeek = today.getDay()
 
-  const daysToThursday = dayOfWeek - 4
-  const thisThursday = new Date(today)
-  thisThursday.setDate(today.getDate() - daysToThursday)
+  const daysToWednesday = dayOfWeek - 3
+  const thisWednesday = new Date(today)
+  thisWednesday.setDate(today.getDate() - daysToWednesday)
 
-  const startDate = new Date(thisThursday)
-  startDate.setHours(0, 0, 0, 0)
-
-  const endDate = new Date(thisThursday)
-  endDate.setDate(thisThursday.getDate() + 6)
+  const endDate = new Date(thisWednesday)
   endDate.setHours(23, 59, 59, 999)
+
+  const startDate = new Date(thisWednesday)
+  startDate.setDate(thisWednesday.getDate() - 6)
+  startDate.setHours(0, 0, 0, 0)
 
   const formatDate = (date: Date) => {
     const year = date.getFullYear()
@@ -32,16 +32,16 @@ export const getCurrentPeriod = (): { startDate: Date; endDate: Date; periodLabe
 export const getPeriodForDate = (date: Date): { startDate: Date; endDate: Date; periodLabel: string } => {
   const dayOfWeek = date.getDay()
 
-  const daysToThursday = dayOfWeek - 4
-  const thisThursday = new Date(date)
-  thisThursday.setDate(date.getDate() - daysToThursday)
+  const daysToWednesday = dayOfWeek - 3
+  const thisWednesday = new Date(date)
+  thisWednesday.setDate(date.getDate() - daysToWednesday)
 
-  const startDate = new Date(thisThursday)
-  startDate.setHours(0, 0, 0, 0)
-
-  const endDate = new Date(thisThursday)
-  endDate.setDate(thisThursday.getDate() + 6)
+  const endDate = new Date(thisWednesday)
   endDate.setHours(23, 59, 59, 999)
+
+  const startDate = new Date(thisWednesday)
+  startDate.setDate(thisWednesday.getDate() - 6)
+  startDate.setHours(0, 0, 0, 0)
 
   const formatDate = (d: Date) => {
     const year = d.getFullYear()

@@ -1,21 +1,17 @@
-import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
-import { llmService } from "../services/llm";
-import type { IssueData, ReportFormData } from "../types/issue";
-import {
-  getHgFilesByIssue,
-  getHgFilesDiffByIssue,
-  type HgFileChange,
-} from "../utils/hg";
-import { generateAndDownloadReport } from "../utils/report";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -25,19 +21,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Check, Copy, Save, Sparkles, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { showToast } from "../App";
+import { llmService } from "../services/llm";
+import type { IssueData, ReportFormData } from "../types/issue";
+import {
+  getHgFilesByIssue,
+  getHgFilesDiffByIssue,
+  type HgFileChange,
+} from "../utils/hg";
+import { generateAndDownloadReport } from "../utils/report";
 
 interface IssueReportModalProps {
   opened: boolean;
@@ -48,6 +49,21 @@ interface UsageInfo {
   resolvedDate: string;
   aiUsage: string;
 }
+
+// 表单草稿数据接口
+interface FormDraft {
+  issueId: string;
+  title: string;
+  modifier: string;
+  reason: string;
+  solution: string;
+  files: string;
+  issueType: string;
+  savedAt: string;
+}
+
+const DRAFT_STORAGE_KEY = 'issuer-report-draft';
+const AUTOSAVE_INTERVAL = 3000; // 3秒自动保存一次
 
 const PROJECT_PATH_MAP: Record<string, string> = {
   crm: "D:/projects/CRM",
@@ -266,13 +282,13 @@ const FileListPanel = ({ files }: { files: HgFileChange[] }) => {
         <div className="flex justify-between items-center mb-3">
           <p className="text-sm font-medium">修改的文件 ({files.length})</p>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-20">状态</TableHead>
-              <TableHead>文件路径</TableHead>
-            </TableRow>
-          </TableHeader>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-20 whitespace-nowrap">状态</TableHead>
+                      <TableHead className="min-w-[200px]">文件路径</TableHead>
+                    </TableRow>
+                  </TableHeader>
           <TableBody>
             {files.map((file, index) => (
               <TableRow key={index}>
@@ -315,6 +331,76 @@ export const IssueReportModal = ({
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [hasDraft, setHasDraft] = useState(false);
+
+  // 从 localStorage 恢复草稿
+  const loadDraft = (currentIssueId: string): FormDraft | null => {
+    try {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        const draft: FormDraft = JSON.parse(saved);
+        // 只恢复同一 Issue 的草稿
+        if (draft.issueId === currentIssueId) {
+          return draft;
+        }
+      }
+    } catch {
+      // 解析失败，忽略
+    }
+    return null;
+  };
+
+  // 保存草稿到 localStorage
+  const saveDraft = useCallback(() => {
+    if (!issueData?.id) return;
+    
+    const draft: FormDraft = {
+      issueId: issueData.id,
+      title,
+      modifier,
+      reason,
+      solution,
+      files,
+      issueType,
+      savedAt: new Date().toISOString(),
+    };
+    
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    setLastSaved(new Date().toLocaleTimeString('zh-CN'));
+    setHasDraft(true);
+  }, [issueData?.id, title, modifier, reason, solution, files, issueType]);
+
+  // 清空草稿
+  const clearDraft = () => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    setHasDraft(false);
+    setLastSaved(null);
+    showToast('success', '草稿已清空');
+  };
+
+  // 自动保存 effect
+  useEffect(() => {
+    if (!opened || !issueData?.id) return;
+    
+    const timer = setInterval(() => {
+      saveDraft();
+    }, AUTOSAVE_INTERVAL);
+    
+    return () => clearInterval(timer);
+  }, [opened, issueData?.id, saveDraft]);
+
+  // 手动保存触发（表单变化时）
+  useEffect(() => {
+    if (!opened || !issueData?.id) return;
+    
+    // 延迟保存，避免频繁写入
+    const timer = setTimeout(() => {
+      saveDraft();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [title, modifier, reason, solution, files, issueType, opened, issueData?.id, saveDraft]);
 
   useEffect(() => {
     if (opened) {
@@ -323,9 +409,6 @@ export const IssueReportModal = ({
 
       if (data) {
         setIssueData(data);
-        setTitle(data.title);
-        setModifier(data.assignee || data.author);
-        setSolution(data.description);
         setSuccess(false);
         setError(null);
         setRedmineId(data.redmineId);
@@ -335,8 +418,31 @@ export const IssueReportModal = ({
         setHgError(null);
         setUsageInfo(usage);
         setUsageWarning(null);
-        setIssueType(data.tracker || "");
         setValidationErrors({});
+
+        // 尝试恢复草稿
+        const draft = loadDraft(data.id);
+        if (draft) {
+          // 有草稿，恢复草稿数据
+          setTitle(draft.title || data.title);
+          setModifier(draft.modifier || data.assignee || data.author);
+          setSolution(draft.solution || data.description);
+          setReason(draft.reason || "");
+          setFiles(draft.files || "");
+          setIssueType(draft.issueType || data.tracker || "");
+          setHasDraft(true);
+          setLastSaved(new Date(draft.savedAt).toLocaleTimeString('zh-CN'));
+          showToast('info', '已恢复草稿', `上次保存时间: ${new Date(draft.savedAt).toLocaleString('zh-CN')}`);
+        } else {
+          // 没有草稿，使用默认数据
+          setTitle(data.title);
+          setModifier(data.assignee || data.author);
+          setSolution(data.description);
+          setReason("");
+          setIssueType(data.tracker || "");
+          setHasDraft(false);
+          setLastSaved(null);
+        }
 
         if (usage && (usage.aiUsage === "" || usage.aiUsage === "0")) {
           setUsageWarning("请在页面上填写 Usage");
@@ -370,7 +476,9 @@ export const IssueReportModal = ({
       setFiles(fileSummary);
     } catch (err) {
       console.error("Failed to fetch Hg data:", err);
-      setHgError("获取 Mercurial 数据失败，请检查仓库路径和服务器");
+      const errorMsg = "获取 Mercurial 数据失败，请检查仓库路径和服务器";
+      setHgError(errorMsg);
+      showToast("error", "网络错误", errorMsg);
     } finally {
       setHgLoading(false);
     }
@@ -383,6 +491,49 @@ export const IssueReportModal = ({
       setUsageWarning("请在页面上填写 Usage");
     } else {
       setUsageWarning(null);
+    }
+  };
+
+  // 根据 Issue 类型获取提交前缀
+  const getCommitPrefix = (type: string): string => {
+    const prefixMap: Record<string, string> = {
+      bug: "fix",
+      feature: "feat",
+      enhancement: "feat",
+      task: "chore",
+      support: "docs",
+    };
+    return prefixMap[type.toLowerCase()] || "chore";
+  };
+
+  // 生成提交信息模板
+  const generateCommitTemplate = (): string => {
+    if (!issueData) return "";
+    const prefix = getCommitPrefix(issueType || issueData.tracker || "");
+    const issueNumber = issueData.redmineId || issueData.id || "";
+    const issueTitle = title || issueData.title || "";
+    // 提取简短描述（取标题冒号后的部分，或前 30 个字符）
+    const shortDesc = issueTitle.includes(":")
+      ? issueTitle.split(":")[1].trim()
+      : issueTitle.slice(0, 30);
+    return `${prefix}(#${issueNumber}): ${shortDesc}`;
+  };
+
+  // 复制到剪贴板
+  const [copied, setCopied] = useState(false);
+  const handleCopyCommitTemplate = async () => {
+    const template = generateCommitTemplate();
+    if (!template) {
+      showToast("warning", "无法生成模板", "请先确保 Issue 信息已加载");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(template);
+      setCopied(true);
+      showToast("success", "已复制提交模板", template);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      showToast("error", "复制失败", "请手动复制文本");
     }
   };
 
@@ -404,7 +555,9 @@ export const IssueReportModal = ({
       setReason(modification);
     } catch (err) {
       console.error("LLM generation error:", err);
-      setError(err instanceof Error ? err.message : "AI 生成失败");
+      const errorMsg = err instanceof Error ? err.message : "AI 生成失败";
+      setError(errorMsg);
+      showToast("error", "AI 生成失败", errorMsg);
     } finally {
       setLlmLoading(false);
     }
@@ -461,9 +614,17 @@ export const IssueReportModal = ({
 
       generateAndDownloadReport(issueData, formData);
       setSuccess(true);
+      showToast("success", "报告生成成功", "Issue 报告已下载到本地");
+      
+      // 生成成功后清空草稿
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      setHasDraft(false);
+      setLastSaved(null);
     } catch (err) {
       console.error("Generate report error:", err);
-      setError(err instanceof Error ? err.message : "生成报告失败");
+      const errorMsg = err instanceof Error ? err.message : "生成报告失败";
+      setError(errorMsg);
+      showToast("error", "报告生成失败", errorMsg);
     } finally {
       setLoading(false);
     }
@@ -476,8 +637,8 @@ export const IssueReportModal = ({
   };
 
   return (
-    <Dialog open={opened} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-4xl">
+      <Dialog open={opened} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="w-[95vw] max-w-7xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Issue 报告</DialogTitle>
           <DialogDescription>
@@ -514,7 +675,7 @@ export const IssueReportModal = ({
         )}
 
         {issueData && (
-          <div className="space-y-4 mt-4">
+          <div className="space-y-4 mt-4 overflow-y-auto max-h-[calc(85vh-180px)] pr-2">
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -563,7 +724,7 @@ export const IssueReportModal = ({
                 }}
                 disabled={loading}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="选择类型" />
                 </SelectTrigger>
                 <SelectContent>
@@ -572,6 +733,7 @@ export const IssueReportModal = ({
                   <SelectItem value="Feature">Feature</SelectItem>
                   <SelectItem value="Task">Task</SelectItem>
                   <SelectItem value="Support">Support</SelectItem>
+                  <SelectItem value="Review Request">Review Request</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -594,6 +756,42 @@ export const IssueReportModal = ({
               )}
             </div>
 
+            {/* 提交信息模板 */}
+            {issueData && (
+              <Card className="bg-muted/50">
+                <CardContent className="p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">提交信息模板</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2"
+                            onClick={handleCopyCommitTemplate}
+                          >
+                            {copied ? (
+                              <Check className="w-4 h-4 text-green-500" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
+                            <span className="ml-1 text-xs">{copied ? "已复制" : "复制"}</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>点击复制提交信息模板</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <code className="block text-sm font-mono bg-background p-2 rounded border">
+                    {generateCommitTemplate()}
+                  </code>
+                </CardContent>
+              </Card>
+            )}
+
             {hgLoading ? (
               <Card>
                 <CardContent className="p-4">
@@ -612,7 +810,7 @@ export const IssueReportModal = ({
               <FileListPanel files={hgFiles} />
             )}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>修改人</Label>
                 <Input
@@ -702,20 +900,44 @@ export const IssueReportModal = ({
               </div>
             </TooltipProvider>
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                onClick={handleGenerate}
-                disabled={!issueData || loading}
-              >
-                生成
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleClose}
-                disabled={loading}
-              >
-                取消
-              </Button>
+            <div className="flex justify-between items-center gap-2 pt-4 border-t mt-4">
+              {/* 左侧：自动保存状态 */}
+              <div className="flex items-center gap-2">
+                {lastSaved && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Save className="w-3.5 h-3.5" />
+                    自动保存于 {lastSaved}
+                  </span>
+                )}
+              </div>
+              
+              {/* 右侧：按钮组 */}
+              <div className="flex gap-2">
+                {hasDraft && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearDraft}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    清空草稿
+                  </Button>
+                )}
+                <Button
+                  onClick={handleGenerate}
+                  disabled={!issueData || loading}
+                >
+                  生成
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                  disabled={loading}
+                >
+                  取消
+                </Button>
+              </div>
             </div>
           </div>
         )}
