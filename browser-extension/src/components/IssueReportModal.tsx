@@ -28,7 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Check, Copy, Save, Sparkles, Trash2 } from "lucide-react";
+import { Save, Sparkles, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { showToast } from "../App";
 import { llmService } from "../services/llm";
@@ -495,47 +495,6 @@ export const IssueReportModal = ({
   };
 
   // 根据 Issue 类型获取提交前缀
-  const getCommitPrefix = (type: string): string => {
-    const prefixMap: Record<string, string> = {
-      bug: "fix",
-      feature: "feat",
-      enhancement: "feat",
-      task: "chore",
-      support: "docs",
-    };
-    return prefixMap[type.toLowerCase()] || "chore";
-  };
-
-  // 生成提交信息模板
-  const generateCommitTemplate = (): string => {
-    if (!issueData) return "";
-    const prefix = getCommitPrefix(issueType || issueData.tracker || "");
-    const issueNumber = issueData.redmineId || issueData.id || "";
-    const issueTitle = title || issueData.title || "";
-    // 提取简短描述（取标题冒号后的部分，或前 30 个字符）
-    const shortDesc = issueTitle.includes(":")
-      ? issueTitle.split(":")[1].trim()
-      : issueTitle.slice(0, 30);
-    return `${prefix}(#${issueNumber}): ${shortDesc}`;
-  };
-
-  // 复制到剪贴板
-  const [copied, setCopied] = useState(false);
-  const handleCopyCommitTemplate = async () => {
-    const template = generateCommitTemplate();
-    if (!template) {
-      showToast("warning", "无法生成模板", "请先确保 Issue 信息已加载");
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(template);
-      setCopied(true);
-      showToast("success", "已复制提交模板", template);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      showToast("error", "复制失败", "请手动复制文本");
-    }
-  };
 
   const handleGenerateWithLLM = async () => {
     if (!issueData) {
@@ -755,42 +714,6 @@ export const IssueReportModal = ({
                 <p className="text-sm text-red-500">{validationErrors["title"]}</p>
               )}
             </div>
-
-            {/* 提交信息模板 */}
-            {issueData && (
-              <Card className="bg-muted/50">
-                <CardContent className="p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs text-muted-foreground">提交信息模板</Label>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2"
-                            onClick={handleCopyCommitTemplate}
-                          >
-                            {copied ? (
-                              <Check className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                            <span className="ml-1 text-xs">{copied ? "已复制" : "复制"}</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>点击复制提交信息模板</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <code className="block text-sm font-mono bg-background p-2 rounded border">
-                    {generateCommitTemplate()}
-                  </code>
-                </CardContent>
-              </Card>
-            )}
 
             {hgLoading ? (
               <Card>
