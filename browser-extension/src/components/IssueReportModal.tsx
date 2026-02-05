@@ -1,7 +1,5 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -9,26 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Save, Sparkles, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { showToast } from "../App";
 import { llmService } from "../services/llm";
@@ -39,6 +17,16 @@ import {
   type HgFileChange,
 } from "../utils/hg";
 import { generateAndDownloadReport } from "../utils/report";
+import {
+  FormActions,
+  IssueInfoHeader,
+  IssueTypeSelect,
+  ModifierDateRow,
+  ReasonTextarea,
+  SolutionTextarea,
+  TitleInput,
+} from "./issue-report";
+import { FileListPanel } from "./issue-report/FileListPanel";
 
 interface IssueReportModalProps {
   opened: boolean;
@@ -50,7 +38,6 @@ interface UsageInfo {
   aiUsage: string;
 }
 
-// 表单草稿数据接口
 interface FormDraft {
   issueId: string;
   title: string;
@@ -62,8 +49,8 @@ interface FormDraft {
   savedAt: string;
 }
 
-const DRAFT_STORAGE_KEY = 'issuer-report-draft';
-const AUTOSAVE_INTERVAL = 3000; // 3秒自动保存一次
+const DRAFT_STORAGE_KEY = "issuer-report-draft";
+const AUTOSAVE_INTERVAL = 3000;
 
 const PROJECT_PATH_MAP: Record<string, string> = {
   crm: "D:/projects/CRM",
@@ -73,36 +60,38 @@ const PROJECT_PATH_MAP: Record<string, string> = {
   bpm: "D:/projects/BPM",
   aquarius: "D:/projects/Aquarius",
   rda: "D:/projects/RDA",
-}
+};
 
 const getProjectFromPage = (): string | null => {
-  const pathMatch = window.location.pathname.match(/\/projects\/([^\/]+)/)
+  const pathMatch = window.location.pathname.match(/\/projects\/([^\/]+)/);
   if (pathMatch) {
-    return pathMatch[1].toLowerCase()
+    return pathMatch[1].toLowerCase();
   }
-  
-  const projectSelect = document.querySelector('#project_quick_jump_box') as HTMLSelectElement
+
+  const projectSelect = document.querySelector(
+    "#project_quick_jump_box"
+  ) as HTMLSelectElement;
   if (projectSelect) {
-    const selectedOption = projectSelect.querySelector('option[selected]')
+    const selectedOption = projectSelect.querySelector("option[selected]");
     if (selectedOption) {
-      const value = selectedOption.getAttribute('value') || ''
-      const match = value.match(/\/projects\/([^?/]+)/)
+      const value = selectedOption.getAttribute("value") || "";
+      const match = value.match(/\/projects\/([^?/]+)/);
       if (match) {
-        return match[1].toLowerCase()
+        return match[1].toLowerCase();
       }
     }
   }
-  
-  return null
-}
+
+  return null;
+};
 
 const getRepoPath = (): string => {
-  const project = getProjectFromPage()
+  const project = getProjectFromPage();
   if (project && PROJECT_PATH_MAP[project]) {
-    return PROJECT_PATH_MAP[project]
+    return PROJECT_PATH_MAP[project];
   }
-  return "D:/projects/CRM"
-}
+  return "D:/projects/CRM";
+};
 
 const getUsageFromPage = (): UsageInfo | null => {
   try {
@@ -241,72 +230,6 @@ const formatDate = (): string => {
   return `${year}-${month}-${day}`;
 };
 
-const normalizeDate = (dateStr: string): string => {
-  if (!dateStr) return formatDate();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return formatDate();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const FileStatusBadge = ({ status }: { status: string }) => {
-  const getStatusConfig = () => {
-    switch (status.toUpperCase()) {
-      case "A":
-        return { variant: "default" as const, label: "新增", symbol: "+" };
-      case "D":
-        return { variant: "destructive" as const, label: "删除", symbol: "-" };
-      case "M":
-        return { variant: "secondary" as const, label: "修改", symbol: "~" };
-      default:
-        return { variant: "outline" as const, label: status, symbol: "?" };
-    }
-  };
-  const config = getStatusConfig();
-  return (
-    <Badge variant={config.variant} className="text-xs">
-      {config.symbol} {config.label}
-    </Badge>
-  );
-};
-
-const FileListPanel = ({ files }: { files: HgFileChange[] }) => {
-  if (files.length === 0) return null;
-
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-3">
-          <p className="text-sm font-medium">修改的文件 ({files.length})</p>
-        </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-20 whitespace-nowrap">状态</TableHead>
-                      <TableHead className="min-w-[200px]">文件路径</TableHead>
-                    </TableRow>
-                  </TableHeader>
-          <TableBody>
-            {files.map((file, index) => (
-              <TableRow key={index}>
-                <TableCell className="w-20">
-                  <FileStatusBadge status={file.status} />
-                </TableCell>
-                <TableCell>
-                  <code className="text-xs truncate block">{file.path}</code>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-};
-
 export const IssueReportModal = ({
   opened,
   onClose,
@@ -334,13 +257,11 @@ export const IssueReportModal = ({
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
 
-  // 从 localStorage 恢复草稿
   const loadDraft = (currentIssueId: string): FormDraft | null => {
     try {
       const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (saved) {
         const draft: FormDraft = JSON.parse(saved);
-        // 只恢复同一 Issue 的草稿
         if (draft.issueId === currentIssueId) {
           return draft;
         }
@@ -351,10 +272,9 @@ export const IssueReportModal = ({
     return null;
   };
 
-  // 保存草稿到 localStorage
   const saveDraft = useCallback(() => {
     if (!issueData?.id) return;
-    
+
     const draft: FormDraft = {
       issueId: issueData.id,
       title,
@@ -365,40 +285,36 @@ export const IssueReportModal = ({
       issueType,
       savedAt: new Date().toISOString(),
     };
-    
+
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
-    setLastSaved(new Date().toLocaleTimeString('zh-CN'));
+    setLastSaved(new Date().toLocaleTimeString("zh-CN"));
     setHasDraft(true);
   }, [issueData?.id, title, modifier, reason, solution, files, issueType]);
 
-  // 清空草稿
   const clearDraft = () => {
     localStorage.removeItem(DRAFT_STORAGE_KEY);
     setHasDraft(false);
     setLastSaved(null);
-    showToast('success', '草稿已清空');
+    showToast("success", "草稿已清空");
   };
 
-  // 自动保存 effect
   useEffect(() => {
     if (!opened || !issueData?.id) return;
-    
+
     const timer = setInterval(() => {
       saveDraft();
     }, AUTOSAVE_INTERVAL);
-    
+
     return () => clearInterval(timer);
   }, [opened, issueData?.id, saveDraft]);
 
-  // 手动保存触发（表单变化时）
   useEffect(() => {
     if (!opened || !issueData?.id) return;
-    
-    // 延迟保存，避免频繁写入
+
     const timer = setTimeout(() => {
       saveDraft();
     }, 1000);
-    
+
     return () => clearTimeout(timer);
   }, [title, modifier, reason, solution, files, issueType, opened, issueData?.id, saveDraft]);
 
@@ -420,10 +336,8 @@ export const IssueReportModal = ({
         setUsageWarning(null);
         setValidationErrors({});
 
-        // 尝试恢复草稿
         const draft = loadDraft(data.id);
         if (draft) {
-          // 有草稿，恢复草稿数据
           setTitle(draft.title || data.title);
           setModifier(draft.modifier || data.assignee || data.author);
           setSolution(draft.solution || data.description);
@@ -431,10 +345,13 @@ export const IssueReportModal = ({
           setFiles(draft.files || "");
           setIssueType(draft.issueType || data.tracker || "");
           setHasDraft(true);
-          setLastSaved(new Date(draft.savedAt).toLocaleTimeString('zh-CN'));
-          showToast('info', '已恢复草稿', `上次保存时间: ${new Date(draft.savedAt).toLocaleString('zh-CN')}`);
+          setLastSaved(new Date(draft.savedAt).toLocaleTimeString("zh-CN"));
+          showToast(
+            "info",
+            "已恢复草稿",
+            `上次保存时间: ${new Date(draft.savedAt).toLocaleString("zh-CN")}`
+          );
         } else {
-          // 没有草稿，使用默认数据
           setTitle(data.title);
           setModifier(data.assignee || data.author);
           setSolution(data.description);
@@ -464,7 +381,7 @@ export const IssueReportModal = ({
     try {
       const repoPath = getRepoPath();
       console.log(`Fetching HG data for issue ${issueId} from ${repoPath}`);
-      
+
       const [fileList] = await Promise.all([
         getHgFilesByIssue(issueId, repoPath),
         getHgFilesDiffByIssue(issueId, repoPath),
@@ -476,7 +393,8 @@ export const IssueReportModal = ({
       setFiles(fileSummary);
     } catch (err) {
       console.error("Failed to fetch Hg data:", err);
-      const errorMsg = "获取 Mercurial 数据失败，请检查仓库路径和服务器";
+      const errorMsg =
+        "获取 Mercurial 数据失败，请检查仓库路径和服务器";
       setHgError(errorMsg);
       showToast("error", "网络错误", errorMsg);
     } finally {
@@ -493,8 +411,6 @@ export const IssueReportModal = ({
       setUsageWarning(null);
     }
   };
-
-  // 根据 Issue 类型获取提交前缀
 
   const handleGenerateWithLLM = async () => {
     if (!issueData) {
@@ -574,8 +490,7 @@ export const IssueReportModal = ({
       generateAndDownloadReport(issueData, formData);
       setSuccess(true);
       showToast("success", "报告生成成功", "Issue 报告已下载到本地");
-      
-      // 生成成功后清空草稿
+
       localStorage.removeItem(DRAFT_STORAGE_KEY);
       setHasDraft(false);
       setLastSaved(null);
@@ -596,20 +511,12 @@ export const IssueReportModal = ({
   };
 
   return (
-      <Dialog open={opened} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="w-[95vw] max-w-7xl max-h-[85vh] overflow-hidden flex flex-col">
+    <Dialog open={opened} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="w-[95vw] max-w-[800px] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Issue 报告</DialogTitle>
-          <DialogDescription>
-            生成 Issue 报告文档
-          </DialogDescription>
+          <DialogDescription>生成 Issue 报告文档</DialogDescription>
         </DialogHeader>
-
-        {loading && (
-          <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50">
-            <Skeleton className="h-8 w-8 rounded-full" />
-          </div>
-        )}
 
         {error && (
           <Alert variant="destructive" className="mb-4">
@@ -621,7 +528,7 @@ export const IssueReportModal = ({
             </AlertDescription>
           </Alert>
         )}
-        
+
         {success && (
           <Alert className="mb-4 bg-green-100 border-green-200">
             <AlertDescription className="flex justify-between items-center">
@@ -635,233 +542,76 @@ export const IssueReportModal = ({
 
         {issueData && (
           <div className="space-y-4 mt-4 overflow-y-auto max-h-[calc(85vh-180px)] pr-2">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-medium">#{issueData.id}</span>
-                  <span className="text-sm">|</span>
-                  <span className="text-sm truncate">{issueData.title}</span>
-                </div>
-              </CardContent>
-            </Card>
+            <IssueInfoHeader
+              issueData={issueData}
+              usageInfo={usageInfo}
+              usageWarning={usageWarning}
+              onRefresh={refreshUsage}
+            />
 
-            {usageWarning && (
-              <Alert variant="default" className="bg-yellow-100 border-yellow-200">
-                <AlertDescription className="flex items-center gap-2">
-                  {usageWarning}
-                  <Button variant="ghost" size="sm" onClick={refreshUsage}>
-                    刷新
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
+            <IssueTypeSelect
+              value={issueType}
+              onChange={(value) => {
+                setIssueType(value);
+                setValidationErrors({});
+              }}
+              disabled={loading}
+            />
 
-            {usageInfo && usageInfo.aiUsage && usageInfo.aiUsage !== "0" && (
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="bg-green-100">
-                      Usage: {usageInfo.aiUsage}%
-                    </Badge>
-                    {usageInfo.resolvedDate && (
-                      <Badge variant="outline" className="bg-blue-100">
-                        Resolved: {usageInfo.resolvedDate}
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            <div className="space-y-2">
-              <Label>Issue 类型</Label>
-              <Select
-                value={issueType}
-                onValueChange={(value) => {
-                  setIssueType(value);
-                  setValidationErrors({});
-                }}
-                disabled={loading}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="选择类型" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Bug">Bug</SelectItem>
-                  <SelectItem value="Enhancement">Enhancement</SelectItem>
-                  <SelectItem value="Feature">Feature</SelectItem>
-                  <SelectItem value="Task">Task</SelectItem>
-                  <SelectItem value="Support">Support</SelectItem>
-                  <SelectItem value="Review Request">Review Request</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input
-                placeholder="RC-Condition: xxx"
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value);
-                  if (validationErrors["title"]) {
-                    setValidationErrors({ ...validationErrors, title: "" });
-                  }
-                }}
-                disabled={loading}
-              />
-              {validationErrors["title"] && (
-                <p className="text-sm text-red-500">{validationErrors["title"]}</p>
-              )}
-            </div>
+            <TitleInput
+              value={title}
+              onChange={setTitle}
+              error={validationErrors["title"]}
+              disabled={loading}
+            />
 
             {hgLoading ? (
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex justify-center items-center py-4">
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="h-20 bg-muted/30 rounded-lg animate-pulse" />
             ) : hgError ? (
-              <Card>
-                <CardContent className="p-4">
-                  <p className="text-sm text-red-500">{hgError}</p>
-                </CardContent>
-              </Card>
+              <div className="p-4 text-sm text-red-500 bg-red-50 rounded-lg">
+                {hgError}
+              </div>
             ) : (
               <FileListPanel files={hgFiles} />
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>修改人</Label>
-                <Input
-                  placeholder="修改人"
-                  value={modifier || "Zhuo Cheng"}
-                  onChange={(e) => {
-                    setModifier(e.target.value);
-                    if (validationErrors["modifier"]) {
-                      setValidationErrors({ ...validationErrors, modifier: "" });
-                    }
-                  }}
-                  disabled={loading}
-                />
-                {validationErrors["modifier"] && (
-                  <p className="text-sm text-red-500">{validationErrors["modifier"]}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label>修改日期</Label>
-                <Input
-                  type="date"
-                  value={normalizeDate(usageInfo?.resolvedDate || "")}
-                  onChange={(e) => {
-                    if (usageInfo) {
-                      setUsageInfo({ ...usageInfo, resolvedDate: e.target.value });
-                    }
-                  }}
-                  disabled={loading}
-                />
-              </div>
-            </div>
+            <ModifierDateRow
+              modifier={modifier}
+              modifierError={validationErrors["modifier"]}
+              resolvedDate={usageInfo?.resolvedDate || ""}
+              onModifierChange={setModifier}
+              onResolvedDateChange={(value) =>
+                usageInfo && setUsageInfo({ ...usageInfo, resolvedDate: value })
+              }
+              loading={loading}
+            />
 
-            <div className="space-y-2">
-              <Label>原因</Label>
-              <Textarea
-                placeholder="问题原因（来自问题描述）"
-                rows={2}
-                value={solution}
-                onChange={(e) => {
-                  setSolution(e.target.value);
-                  if (validationErrors["solution"]) {
-                    setValidationErrors({ ...validationErrors, solution: "" });
-                  }
-                }}
-                disabled={loading || llmLoading}
-              />
-              {validationErrors["solution"] && (
-                <p className="text-sm text-red-500">{validationErrors["solution"]}</p>
-              )}
-            </div>
+            <SolutionTextarea
+              value={solution}
+              error={validationErrors["solution"]}
+              onChange={setSolution}
+              disabled={loading}
+              llmLoading={llmLoading}
+            />
 
-            <TooltipProvider>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label>修改</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleGenerateWithLLM}
-                        disabled={!issueData || !files || llmLoading}
-                      >
-                        <Sparkles size={18} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>点击生成修改原因</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Textarea
-                  placeholder="描述具体的解决方案（点击AI基于修改记录生成）"
-                  rows={2}
-                  value={reason}
-                  onChange={(e) => {
-                    setReason(e.target.value);
-                    if (validationErrors["reason"]) {
-                      setValidationErrors({ ...validationErrors, reason: "" });
-                    }
-                  }}
-                  disabled={loading || llmLoading}
-                />
-                {validationErrors["reason"] && (
-                  <p className="text-sm text-red-500">{validationErrors["reason"]}</p>
-                )}
-              </div>
-            </TooltipProvider>
+            <ReasonTextarea
+              value={reason}
+              error={validationErrors["reason"]}
+              onChange={setReason}
+              onGenerate={handleGenerateWithLLM}
+              disabled={!issueData || !files}
+              loading={loading}
+              llmLoading={llmLoading}
+            />
 
-            <div className="flex justify-between items-center gap-2 pt-4 border-t mt-4">
-              {/* 左侧：自动保存状态 */}
-              <div className="flex items-center gap-2">
-                {lastSaved && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Save className="w-3.5 h-3.5" />
-                    自动保存于 {lastSaved}
-                  </span>
-                )}
-              </div>
-              
-              {/* 右侧：按钮组 */}
-              <div className="flex gap-2">
-                {hasDraft && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearDraft}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    清空草稿
-                  </Button>
-                )}
-                <Button
-                  onClick={handleGenerate}
-                  disabled={!issueData || loading}
-                >
-                  生成
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleClose}
-                  disabled={loading}
-                >
-                  取消
-                </Button>
-              </div>
-            </div>
+            <FormActions
+              lastSaved={lastSaved}
+              hasDraft={hasDraft}
+              onClearDraft={clearDraft}
+              onGenerate={handleGenerate}
+              onClose={handleClose}
+              disabled={!issueData || loading}
+            />
           </div>
         )}
       </DialogContent>

@@ -1,9 +1,9 @@
-import { BarChart3, FileText, Moon, Sun, X, PieChart } from 'lucide-react';
+import { BarChart3, FileText, Moon, Sun, X } from 'lucide-react';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import './App.css';
 import { IssueReportModal } from './components/IssueReportModal';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
-import { DashboardModal } from './components/DashboardModal';
+
 import { ToastContainer } from './components/ui/toast';
 import { useToast } from './hooks/useToast';
 
@@ -87,7 +87,7 @@ const FloatingBall = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [showIssueReport, setShowIssueReport] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
-  const [showDashboard, setShowDashboard] = useState(false);
+
   const [usageWarning, setUsageWarning] = useState(false);
   const [isDark, setIsDark] = useState(() => {
     return localStorage.getItem('issuer-color-scheme') === 'dark';
@@ -163,8 +163,6 @@ const FloatingBall = () => {
       setShowIssueReport(true);
     } else if (value === "weekly") {
       setShowWeeklyReport(true);
-    } else if (value === "dashboard") {
-      setShowDashboard(true);
     } else if (value === "theme") {
       const newScheme = isDark ? 'light' : 'dark';
       setIsDark(!isDark);
@@ -210,13 +208,6 @@ const FloatingBall = () => {
         setShowWeeklyReport(true);
       }
       
-      // Ctrl/Cmd + Shift + D: 打开 Dashboard
-      if (isCmdOrCtrl && event.shiftKey && event.key === 'D') {
-        event.preventDefault();
-        setShowMenu(false);
-        setShowDashboard(true);
-      }
-      
       // Esc: 关闭弹窗或菜单
       if (event.key === 'Escape') {
         // 关闭优先级：弹窗 > 菜单
@@ -224,8 +215,6 @@ const FloatingBall = () => {
           setShowIssueReport(false);
         } else if (showWeeklyReport) {
           setShowWeeklyReport(false);
-        } else if (showDashboard) {
-          setShowDashboard(false);
         } else if (showMenu) {
           setShowMenu(false);
         }
@@ -607,46 +596,7 @@ const FloatingBall = () => {
             <span>Weekly Report</span>
           </button>
 
-            <button
-              onClick={() => handleMenuSelect('dashboard')}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: 'none',
-                borderRadius: '12px',
-                background: 'transparent',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                transition: 'all 0.15s ease',
-                color: isDark ? '#e2e8f0' : '#1e293b',
-                fontSize: '14px',
-                fontWeight: 500,
-                marginTop: '4px',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(168, 85, 247, 0.08)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-              }}
-            >
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '10px',
-                  background: isDark ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <PieChart size={16} style={{ color: '#a855f7' }} />
-              </div>
-              <span>数据统计</span>
-            </button>
+
 
             <div
               style={{
@@ -704,7 +654,7 @@ const FloatingBall = () => {
 
       <IssueReportModal opened={showIssueReport} onClose={() => setShowIssueReport(false)} />
       <WeeklyReportModal opened={showWeeklyReport} onClose={() => setShowWeeklyReport(false)} />
-      <DashboardModal opened={showDashboard} onClose={() => setShowDashboard(false)} />
+      
       
       {/* Toast 通知容器 */}
       <ToastContainer toasts={toasts} onClose={removeToast} isDark={isDark} />
