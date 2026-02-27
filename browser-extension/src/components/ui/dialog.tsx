@@ -24,9 +24,22 @@ function DialogPortal({
 }
 
 function DialogClose({
+  onClick,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Close>) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
+  return (
+    <DialogPrimitive.Close
+      data-slot="dialog-close"
+      {...props}
+      asChild={props.asChild}
+      onClick={(event: React.MouseEvent<HTMLElement>) => {
+        if (onClick && typeof onClick === 'function') {
+          // Cast event to fit dynamically with asChild element
+          onClick(event as React.MouseEvent<HTMLButtonElement>);
+        }
+      }}
+    />
+  );
 }
 
 function DialogOverlay({
