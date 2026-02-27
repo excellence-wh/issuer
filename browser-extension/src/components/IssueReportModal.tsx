@@ -517,7 +517,10 @@ export const IssueReportModal = ({
 
   return (
     <Dialog open={opened}>
-      <DialogContent className=\"w-[95vw] max-w-[800px] max-h-[85vh] overflow-hidden flex flex-col\" showCloseButton>
+      <DialogContent
+        className="w-[95vw] max-w-[800px] max-h-[85vh] overflow-hidden flex flex-col"
+        showCloseButton={true}
+      >
         <DialogHeader>
           <DialogTitle>{t("issueReport.title")}</DialogTitle>
           <DialogDescription>{t("issueReport.generateDocument")}</DialogDescription>
