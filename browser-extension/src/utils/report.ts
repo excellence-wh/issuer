@@ -1,5 +1,7 @@
 import { utils, write } from 'xlsx-js-style';
 import type { IssueData, ReportFormData } from '../types/issue';
+import { getTranslation } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n';
 
 const defaultCellStyle = {
   font: { name: 'Calibri', sz: 11 },
@@ -41,22 +43,24 @@ const cellAddress = (row: number, col: number): string => {
   return `${colLetter}${row + 1}`;
 };
 
-export const generateReport = (_: IssueData, formData: ReportFormData): any => {
+export const generateReport = (_: IssueData, formData: ReportFormData, locale: Locale): any => {
   const workbook = utils.book_new();
 
+  const t = (key: string) => getTranslation(locale, key);
+
   const data: string[][] = [
-    ["Bug调试/影响报告"],
-    ["Redmine ID", formData.redmineId, "", ""],
-    ["Title", formData.title, "", ""],
-    ["修改文件", formData.files, "", ""],
-    ["修改人", formData.modifier, "","修改日期", formData.modifyDate],
-    ["原因", formData.solution, "", ""],
-    ["修改", formData.reason, "", ""],
-    ["调试结果", "初始状态", "", "", ""],
+    [t('issueReport.reportTitle')],
+    [t('issueReport.redmineIdLabel'), formData.redmineId, "", ""],
+    [t('issueReport.titleLabel'), formData.title, "", ""],
+    [t('issueReport.filesLabel'), formData.files, "", ""],
+    [t('issueReport.modifier'), formData.modifier, "", t('issueReport.modifiedDate'), formData.modifyDate],
+    [t('issueReport.solution'), formData.solution, "", ""],
+    [t('issueReport.reason'), formData.reason, "", ""],
+    [t('issueReport.debuggingResults'), t('issueReport.initialState'), "", "", ""],
     ["", formData.debuggingResults.initialState, "", "", ""],
-    ["", "结果状态", "", "", ""],
+    ["", t('issueReport.resultState'), "", "", ""],
     ["", formData.debuggingResults.resultState, "", "", ""],
-    ["AI Usage", "", "", "", ""],
+    [t('issueReport.aiUsage'), "", "", "", ""],
   ];
 
   const worksheet = utils.aoa_to_sheet(data);
@@ -116,8 +120,12 @@ export const downloadReport = (workbook: any, filename: string): void => {
   URL.revokeObjectURL(link.href);
 };
 
-export const generateAndDownloadReport = (issueData: IssueData, formData: ReportFormData): void => {
-  const workbook = generateReport(issueData, formData);
+export const generateAndDownloadReport = (
+  issueData: IssueData,
+  formData: ReportFormData,
+  locale: Locale
+): void => {
+  const workbook = generateReport(issueData, formData, locale);
   const filename = `${issueData.id}.xlsx`;
   downloadReport(workbook, filename);
 };

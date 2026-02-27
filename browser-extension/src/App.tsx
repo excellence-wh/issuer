@@ -1,9 +1,9 @@
-import { BarChart3, FileText, Moon, Sun, X, Settings } from 'lucide-react';
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { BarChart3, FileText, Moon, Settings, Sun, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 import { IssueReportModal } from './components/IssueReportModal';
-import { WeeklyReportModal } from './components/WeeklyReportModal';
 import { SettingsModal } from './components/SettingsModal';
+import { WeeklyReportModal } from './components/WeeklyReportModal';
 
 import { ToastContainer } from './components/ui/toast';
 import { useToast } from './hooks/useToast';
@@ -253,6 +253,8 @@ const FloatingBall = () => {
     ball.id = 'excellence-floating-ball';
     ball.className = 'floating-ball';
     ball.textContent = usageWarning ? '⚠️' : '📊';
+    ball.style.backgroundSize = 'cover';
+    ball.style.backgroundPosition = 'center';
     ball.style.position = 'fixed';
     ball.style.zIndex = '2147483647';
     ball.style.cursor = 'grab';

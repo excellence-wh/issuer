@@ -6,11 +6,6 @@ const rootId = 'excellence-root';
 
 let mounted = false;
 
-const isIssuePage = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  return /\/issues\/\d+/.test(window.location.pathname);
-};
-
 const isRedmineSite = (): boolean => {
   if (typeof window === 'undefined') return false;
   try {

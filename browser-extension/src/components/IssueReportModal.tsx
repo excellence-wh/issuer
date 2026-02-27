@@ -492,7 +492,7 @@ export const IssueReportModal = ({
         },
       };
 
-      generateAndDownloadReport(issueData, formData);
+      generateAndDownloadReport(issueData, formData, locale);
       setSuccess(true);
       showToast("success", t("toast.reportGenerated"), t("toast.downloaded"));
 
@@ -516,8 +516,8 @@ export const IssueReportModal = ({
   };
 
   return (
-    <Dialog open={opened} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="w-[95vw] max-w-[800px] max-h-[85vh] overflow-hidden flex flex-col">
+    <Dialog open={opened}>
+      <DialogContent className=\"w-[95vw] max-w-[800px] max-h-[85vh] overflow-hidden flex flex-col\" showCloseButton>
         <DialogHeader>
           <DialogTitle>{t("issueReport.title")}</DialogTitle>
           <DialogDescription>{t("issueReport.generateDocument")}</DialogDescription>

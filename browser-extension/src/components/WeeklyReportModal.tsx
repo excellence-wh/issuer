@@ -212,7 +212,7 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `Weekly_Report_${formattedStartDate}_${formattedEndDate}.xlsx`;
+      link.download = `${t('weekly.filenamePrefix')}${formattedStartDate}_${formattedEndDate}.xlsx`;
       link.click();
       URL.revokeObjectURL(link.href);
 
@@ -229,9 +229,9 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
 
   const generateSheet = (allProjectIssues: Issue[], formattedStartDate: string, formattedEndDate: string) => {
     const headers = [
-      'Redmine No.', 'Project', 'Tracker', 'Description', 'Priority',
+      t('weekly.redmineNo'), t('weekly.project'), t('weekly.tracker'), t('weekly.description'), t('weekly.priority'),
       t('weekly.totalEstimatedHours'), t('weekly.estimatedHours'), t('weekly.weightedHours'),
-      'Need Impact Analysis', 'Is Study Issue', 'Seniority', 'Reopened Developer',
+      t('weekly.needImpactAnalysis'), t('weekly.isStudyIssue'), t('weekly.seniority'), t('weekly.reopenedDeveloper'),
       t('weekly.assignee'), t('weekly.dueDate'), t('weekly.startDate'), t('weekly.resolvedDate'), t('weekly.registrationStatus'), t('weekly.date')
     ];
 
@@ -249,7 +249,7 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
         issue.estimated_hours,
         issue.estimated_hours,
         '', '', '', '',
-        '程卓',
+        t('weekly.reopenedDeveloperName'),
         formattedEndDate,
         formattedStartDate,
         formattedEndDate,
@@ -285,7 +285,7 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
       }
     }
 
-    utils.book_append_sheet(workbook, worksheet, 'Weekly');
+    utils.book_append_sheet(workbook, worksheet, t('weekly.sheetName'));
     return worksheet;
   };
 
@@ -329,9 +329,9 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
         )}
 
         {success && (
-          <Alert className="mb-4 bg-green-100 border-green-200">
+        <Alert className="mb-4 bg-green-100 border-green-200">
             <AlertDescription className="flex justify-between items-center">
-              报告已生成
+              {t('toast.reportGenerated')}
               <Button variant="ghost" size="sm" onClick={() => setSuccess(false)}>
                 {t('common.close')}
               </Button>
@@ -430,14 +430,14 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
           {issues.length > 0 && (
             <Card>
               <CardContent className="p-4">
-                <p className="text-sm font-medium mb-3">问题列表 ({issues.length})</p>
+                <p className="text-sm font-medium mb-3">{t('weekly.issueList').replace('{count}', String(issues.length))}</p>
                 <Table>
-                  <TableHeader>
+                <TableHeader>
                     <TableRow>
-                      <TableHead className="whitespace-nowrap">No.</TableHead>
-                      <TableHead className="whitespace-nowrap hidden sm:table-cell">Tracker</TableHead>
-                      <TableHead className="w-[200px]">Subject</TableHead>
-                      <TableHead className="whitespace-nowrap hidden md:table-cell">Resolved Date</TableHead>
+                      <TableHead className="whitespace-nowrap">{t('weekly.redmineNoShort')}</TableHead>
+                      <TableHead className="whitespace-nowrap hidden sm:table-cell">{t('weekly.tracker')}</TableHead>
+                      <TableHead className="w-[200px]">{t('weekly.subject')}</TableHead>
+                      <TableHead className="whitespace-nowrap hidden md:table-cell">{t('weekly.resolvedDate')}</TableHead>
                     </TableRow>
                   </TableHeader>
               <TableBody>
@@ -452,7 +452,7 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
               </TableBody>
                 </Table>
                 {issues.length > 10 && (
-                  <p className="text-xs text-gray-500 mt-2">... 共 {issues.length} 条</p>
+                  <p className="text-xs text-gray-500 mt-2">{t('weekly.moreCount').replace('{count}', String(issues.length))}</p>
                 )}
               </CardContent>
             </Card>
