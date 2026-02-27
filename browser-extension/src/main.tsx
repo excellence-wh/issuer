@@ -6,6 +6,29 @@ const rootId = 'excellence-root';
 
 let mounted = false;
 
+const isIssuePage = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return /\/issues\/\d+/.test(window.location.pathname);
+};
+
+const isRedmineSite = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const host = window.location.hostname.toLowerCase();
+    const path = window.location.pathname;
+
+    if (host.includes('redmine')) return true;
+    if (/\/projects(\/|$)/.test(path) || /\/issues(\/|$)/.test(path)) return true;
+    if (document.querySelector('#project_quick_jump_box')) return true;
+    if (document.querySelector('.subject h3')) return true;
+    if (document.querySelector('.attributes')) return true;
+
+    return false;
+  } catch {
+    return false;
+  }
+};
+
 const mountApp = () => {
   if (mounted) return;
   mounted = true;
@@ -34,4 +57,7 @@ const mountApp = () => {
   );
 };
 
-mountApp();
+// Only mount on Redmine pages
+if (isRedmineSite()) {
+  mountApp();
+}

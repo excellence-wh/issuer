@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { IssueData } from "../../types/issue";
 import { UsageInfoCard } from "./UsageInfoCard";
+import type { Locale } from "@/lib/i18n";
 
 interface UsageInfo {
   resolvedDate: string;
@@ -13,11 +14,13 @@ export const IssueInfoHeader = ({
   usageInfo,
   usageWarning,
   onRefresh,
+  locale,
 }: {
   issueData: IssueData;
   usageInfo: UsageInfo | null;
   usageWarning: string | null;
   onRefresh: () => void;
+  locale: Locale;
 }) => {
   return (
     <Card className="bg-muted/30 border-muted">
@@ -52,6 +55,7 @@ export const IssueInfoHeader = ({
             usageInfo={usageInfo}
             usageWarning={usageWarning}
             onRefresh={onRefresh}
+            locale={locale}
           />
         </div>
       </CardContent>

@@ -17,16 +17,19 @@ import {
   FileCode,
   Folder,
 } from "lucide-react";
+import type { Locale } from "@/lib/i18n";
+import { getTranslation } from "@/lib/i18n";
 
-const FileStatusBadge = ({ status }: { status: string }) => {
+const FileStatusBadge = ({ status, locale }: { status: string; locale: Locale }) => {
+  const t = (key: string) => getTranslation(locale, key);
   const getStatusConfig = () => {
     switch (status.toUpperCase()) {
       case "A":
-        return { label: "新增", symbol: "+", color: "bg-green-100 text-green-700 border-green-200" };
+        return { label: t("issueReport.new"), symbol: "+", color: "bg-green-100 text-green-700 border-green-200" };
       case "D":
-        return { label: "删除", symbol: "-", color: "bg-red-100 text-red-700 border-red-200" };
+        return { label: t("issueReport.deleted"), symbol: "-", color: "bg-red-100 text-red-700 border-red-200" };
       case "M":
-        return { label: "修改", symbol: "~", color: "bg-blue-100 text-blue-700 border-blue-200" };
+        return { label: t("issueReport.modified"), symbol: "~", color: "bg-blue-100 text-blue-700 border-blue-200" };
       default:
         return { label: status, symbol: "?", color: "bg-gray-100 text-gray-700 border-gray-200" };
     }
@@ -42,10 +45,13 @@ const FileStatusBadge = ({ status }: { status: string }) => {
 const FilePathDisplay = ({
   path,
   onCopy,
+  locale,
 }: {
   path: string;
   onCopy: (fileName: string) => void;
+  locale: Locale;
 }) => {
+  const t = (key: string) => getTranslation(locale, key);
   const parts = path.split("/");
   const fileName = parts.pop();
   const folderPath = parts.join("/");
@@ -77,7 +83,7 @@ const FilePathDisplay = ({
               onClick={handleCopy}
             >
               <Copy className="w-3 h-3 mr-1" />
-              复制文件名
+              {t("issueReport.copyFileName")}
             </Button>
           </div>
         </TooltipContent>
@@ -86,7 +92,8 @@ const FilePathDisplay = ({
   );
 };
 
-export const FileListPanel = ({ files }: { files: HgFileChange[] }) => {
+export const FileListPanel = ({ files, locale }: { files: HgFileChange[]; locale: Locale }) => {
+  const t = (key: string) => getTranslation(locale, key);
   const [isOpen, setIsOpen] = useState(false);
   const [viewAll, setViewAll] = useState(false);
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
@@ -119,8 +126,8 @@ export const FileListPanel = ({ files }: { files: HgFileChange[] }) => {
               <FileCode className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-medium">修改的文件</p>
-              <p className="text-xs text-muted-foreground">{files.length} 个文件</p>
+              <p className="text-sm font-medium">{t("issueReport.modifiedFiles")}</p>
+              <p className="text-xs text-muted-foreground">{files.length} {t("issueReport.filesCount")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -151,12 +158,12 @@ export const FileListPanel = ({ files }: { files: HgFileChange[] }) => {
                 key={index}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors overflow-hidden"
               >
-                <FileStatusBadge status={file.status} />
+                <FileStatusBadge status={file.status} locale={locale} />
                 <div className="relative min-w-0 flex-1">
-                  <FilePathDisplay path={file.path} onCopy={handleCopy} />
+                  <FilePathDisplay path={file.path} onCopy={handleCopy} locale={locale} />
                   {copiedFile === (file.path.split("/").pop()) && (
                     <span className="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-green-600 bg-white px-1 rounded">
-                      已复制
+                      {t("issueReport.copied")}
                     </span>
                   )}
                 </div>
@@ -173,7 +180,7 @@ export const FileListPanel = ({ files }: { files: HgFileChange[] }) => {
                 }}
               >
                 <Folder className="w-4 h-4 mr-2" />
-                查看其余 {remainingCount} 个文件
+                {t("issueReport.viewRemaining")} {remainingCount} {t("issueReport.files")}
               </Button>
             )}
           </div>

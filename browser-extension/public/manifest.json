@@ -16,7 +16,12 @@
     },
     "content_scripts": [
         {
-            "matches": ["*://*/*"],
+            "matches": [
+                "*://*/*/projects/*",
+                "*://*/*/issues/*",
+                "*://*/*/projects",
+                "*://*/*/issues"
+            ],
             "js": ["assets/index.js"],
             "css": ["assets/index.css"],
             "run_at": "document_end"
@@ -25,7 +30,12 @@
     "web_accessible_resources": [
         {
             "resources": ["assets/index.js", "assets/index.css", "templates/*.xlsx"],
-            "matches": ["*://*/*"]
+            "matches": [
+                "*://*/*/projects/*",
+                "*://*/*/issues/*",
+                "*://*/*/projects",
+                "*://*/*/issues"
+            ]
         }
     ]
 }

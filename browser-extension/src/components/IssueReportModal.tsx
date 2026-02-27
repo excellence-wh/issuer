@@ -27,10 +27,13 @@ import {
   TitleInput,
 } from "./issue-report";
 import { FileListPanel } from "./issue-report/FileListPanel";
+import type { Locale } from "@/lib/i18n";
+import { getTranslation } from "@/lib/i18n";
 
 interface IssueReportModalProps {
   opened: boolean;
   onClose: () => void;
+  locale: Locale;
 }
 
 interface UsageInfo {
@@ -233,7 +236,10 @@ const formatDate = (): string => {
 export const IssueReportModal = ({
   opened,
   onClose,
+  locale,
 }: IssueReportModalProps) => {
+  const t = (key: string) => getTranslation(locale, key);
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -287,7 +293,7 @@ export const IssueReportModal = ({
     };
 
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
-    setLastSaved(new Date().toLocaleTimeString("zh-CN"));
+    setLastSaved(new Date().toLocaleTimeString(locale));
     setHasDraft(true);
   }, [issueData?.id, title, modifier, reason, solution, files, issueType]);
 
@@ -295,7 +301,7 @@ export const IssueReportModal = ({
     localStorage.removeItem(DRAFT_STORAGE_KEY);
     setHasDraft(false);
     setLastSaved(null);
-    showToast("success", "草稿已清空");
+    showToast("success", t("toast.draftCleared"));
   };
 
   useEffect(() => {
@@ -345,11 +351,11 @@ export const IssueReportModal = ({
           setFiles(draft.files || "");
           setIssueType(draft.issueType || data.tracker || "");
           setHasDraft(true);
-          setLastSaved(new Date(draft.savedAt).toLocaleTimeString("zh-CN"));
+          setLastSaved(new Date(draft.savedAt).toLocaleTimeString(locale));
           showToast(
             "info",
-            "已恢复草稿",
-            `上次保存时间: ${new Date(draft.savedAt).toLocaleString("zh-CN")}`
+            t("toast.draftRestored"),
+            `${t("toast.lastSaved")}: ${new Date(draft.savedAt).toLocaleString(locale)}`
           );
         } else {
           setTitle(data.title);
@@ -362,14 +368,14 @@ export const IssueReportModal = ({
         }
 
         if (usage && (usage.aiUsage === "" || usage.aiUsage === "0")) {
-          setUsageWarning("请在页面上填写 Usage");
+          setUsageWarning(t("usage.fillUsageOnPage"));
         }
 
         if (data.id) {
           fetchHgData(data.id);
         }
       } else {
-        setError("无法获取 Issue 信息");
+        setError(t("issue.issueNotFound"));
       }
     }
   }, [opened]);
@@ -393,10 +399,9 @@ export const IssueReportModal = ({
       setFiles(fileSummary);
     } catch (err) {
       console.error("Failed to fetch Hg data:", err);
-      const errorMsg =
-        "获取 Mercurial 数据失败，请检查仓库路径和服务器";
+      const errorMsg = t("issue.hgDataFailed");
       setHgError(errorMsg);
-      showToast("error", "网络错误", errorMsg);
+      showToast("error", t("toast.networkError"), errorMsg);
     } finally {
       setHgLoading(false);
     }
@@ -406,7 +411,7 @@ export const IssueReportModal = ({
     const usage = getUsageFromPage();
     setUsageInfo(usage);
     if (usage && (usage.aiUsage === "" || usage.aiUsage === "0")) {
-      setUsageWarning("请在页面上填写 Usage");
+      setUsageWarning(t("usage.fillUsageOnPage"));
     } else {
       setUsageWarning(null);
     }
@@ -414,7 +419,7 @@ export const IssueReportModal = ({
 
   const handleGenerateWithLLM = async () => {
     if (!issueData) {
-      setError("Issue 数据为空");
+      setError(t("issue.issueEmpty"));
       return;
     }
 
@@ -430,9 +435,9 @@ export const IssueReportModal = ({
       setReason(modification);
     } catch (err) {
       console.error("LLM generation error:", err);
-      const errorMsg = err instanceof Error ? err.message : "AI 生成失败";
+      const errorMsg = err instanceof Error ? err.message : t("toast.aiGenerateError");
       setError(errorMsg);
-      showToast("error", "AI 生成失败", errorMsg);
+      showToast("error", t("toast.aiGenerateError"), errorMsg);
     } finally {
       setLlmLoading(false);
     }
@@ -445,10 +450,10 @@ export const IssueReportModal = ({
       issueType.toLowerCase() === "enhancement";
 
     if (isBugOrEnhancement) {
-      if (!title.trim()) errors["title"] = "标题不能为空";
-      if (!reason.trim()) errors["reason"] = "修改原因不能为空";
-      if (!solution.trim()) errors["solution"] = "解决方案不能为空";
-      if (!modifier.trim()) errors["modifier"] = "修改人不能为空";
+      if (!title.trim()) errors["title"] = t("issue.titleRequired");
+      // Reason is optional now — allow generating report without filling it
+      if (!solution.trim()) errors["solution"] = t("issue.solutionRequired");
+      if (!modifier.trim()) errors["modifier"] = t("issue.modifierRequired");
     }
 
     setValidationErrors(errors);
@@ -457,18 +462,18 @@ export const IssueReportModal = ({
 
   const handleGenerate = async () => {
     if (!issueData) {
-      setError("Issue 数据为空");
+      setError(t("issue.issueEmpty"));
       return;
     }
 
     const usage = getUsageFromPage();
     if (!usage || usage.aiUsage === "" || usage.aiUsage === "0") {
-      setError("请先在页面上填写AI Usage");
+      setError(t("issue.fillUsageFirst"));
       return;
     }
 
     if (!validateForm()) {
-      setError("请填写必填字段");
+      setError(t("issue.fillRequiredFields"));
       return;
     }
 
@@ -476,11 +481,11 @@ export const IssueReportModal = ({
       const formData: ReportFormData = {
         redmineId: redmineId,
         title: title,
-        files: files || "无",
-        modifier: modifier || "无",
+        files: files || t("common.none"),
+        modifier: modifier || t("common.none"),
         modifyDate: usage.resolvedDate || formatDate(),
-        reason: reason || "无",
-        solution: solution || "无",
+        reason: reason || t("common.none"),
+        solution: solution || t("common.none"),
         debuggingResults: {
           initialState: "",
           resultState: "",
@@ -489,16 +494,16 @@ export const IssueReportModal = ({
 
       generateAndDownloadReport(issueData, formData);
       setSuccess(true);
-      showToast("success", "报告生成成功", "Issue 报告已下载到本地");
+      showToast("success", t("toast.reportGenerated"), t("toast.downloaded"));
 
       localStorage.removeItem(DRAFT_STORAGE_KEY);
       setHasDraft(false);
       setLastSaved(null);
     } catch (err) {
       console.error("Generate report error:", err);
-      const errorMsg = err instanceof Error ? err.message : "生成报告失败";
+      const errorMsg = err instanceof Error ? err.message : t("toast.reportGenerateError");
       setError(errorMsg);
-      showToast("error", "报告生成失败", errorMsg);
+      showToast("error", t("toast.reportGenerateError"), errorMsg);
     } finally {
       setLoading(false);
     }
@@ -514,17 +519,17 @@ export const IssueReportModal = ({
     <Dialog open={opened} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="w-[95vw] max-w-[800px] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Issue 报告</DialogTitle>
-          <DialogDescription>生成 Issue 报告文档</DialogDescription>
+          <DialogTitle>{t("issueReport.title")}</DialogTitle>
+          <DialogDescription>{t("issueReport.generateDocument")}</DialogDescription>
         </DialogHeader>
 
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertDescription className="flex justify-between items-center">
-              {error}
-              <Button variant="ghost" size="sm" onClick={() => setError(null)}>
-                关闭
-              </Button>
+              <AlertDescription className="flex justify-between items-center">
+                {error}
+                <Button variant="ghost" size="sm" onClick={() => setError(null)}>
+                  {t("common.close")}
+                </Button>
             </AlertDescription>
           </Alert>
         )}
@@ -532,9 +537,9 @@ export const IssueReportModal = ({
         {success && (
           <Alert className="mb-4 bg-green-100 border-green-200">
             <AlertDescription className="flex justify-between items-center">
-              报告已生成：{issueData?.id}.xlsx
+              {t("toast.reportGenerated")}: {issueData?.id}.xlsx
               <Button variant="ghost" size="sm" onClick={() => setSuccess(false)}>
-                关闭
+                {t("common.close")}
               </Button>
             </AlertDescription>
           </Alert>
@@ -547,6 +552,7 @@ export const IssueReportModal = ({
               usageInfo={usageInfo}
               usageWarning={usageWarning}
               onRefresh={refreshUsage}
+              locale={locale}
             />
 
             <IssueTypeSelect
@@ -556,6 +562,7 @@ export const IssueReportModal = ({
                 setValidationErrors({});
               }}
               disabled={loading}
+              locale={locale}
             />
 
             <TitleInput
@@ -563,6 +570,7 @@ export const IssueReportModal = ({
               onChange={setTitle}
               error={validationErrors["title"]}
               disabled={loading}
+              locale={locale}
             />
 
             {hgLoading ? (
@@ -572,7 +580,7 @@ export const IssueReportModal = ({
                 {hgError}
               </div>
             ) : (
-              <FileListPanel files={hgFiles} />
+              <FileListPanel files={hgFiles} locale={locale} />
             )}
 
             <ModifierDateRow
@@ -584,6 +592,7 @@ export const IssueReportModal = ({
                 usageInfo && setUsageInfo({ ...usageInfo, resolvedDate: value })
               }
               loading={loading}
+              locale={locale}
             />
 
             <SolutionTextarea
@@ -592,6 +601,7 @@ export const IssueReportModal = ({
               onChange={setSolution}
               disabled={loading}
               llmLoading={llmLoading}
+              locale={locale}
             />
 
             <ReasonTextarea
@@ -602,6 +612,7 @@ export const IssueReportModal = ({
               disabled={!issueData || !files}
               loading={loading}
               llmLoading={llmLoading}
+              locale={locale}
             />
 
             <FormActions
@@ -611,6 +622,7 @@ export const IssueReportModal = ({
               onGenerate={handleGenerate}
               onClose={handleClose}
               disabled={!issueData || loading}
+              locale={locale}
             />
           </div>
         )}

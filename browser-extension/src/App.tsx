@@ -1,11 +1,14 @@
-import { BarChart3, FileText, Moon, Sun, X } from 'lucide-react';
+import { BarChart3, FileText, Moon, Sun, X, Settings } from 'lucide-react';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import './App.css';
 import { IssueReportModal } from './components/IssueReportModal';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
+import { SettingsModal } from './components/SettingsModal';
 
 import { ToastContainer } from './components/ui/toast';
 import { useToast } from './hooks/useToast';
+import type { Locale } from './lib/i18n';
+import { getTranslation } from './lib/i18n';
 
 // 创建全局 Toast 状态管理
 let globalAddToast: ReturnType<typeof useToast>['addToast'] | null = null;
@@ -87,11 +90,21 @@ const FloatingBall = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [showIssueReport, setShowIssueReport] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const [usageWarning, setUsageWarning] = useState(false);
-  const [isDark, setIsDark] = useState(() => {
-    return localStorage.getItem('issuer-color-scheme') === 'dark';
+  const [locale, setLocale] = useState<Locale>(() => {
+    const saved = localStorage.getItem('issuer-locale') as Locale;
+    return saved || 'zh-CN';
   });
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('issuer-color-scheme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  const t = (key: string) => getTranslation(locale, key);
+
   const menuRef = useRef<HTMLDivElement>(null);
   
   // Toast 通知
@@ -144,8 +157,8 @@ const FloatingBall = () => {
       if (!hasShownWarningRef.current) {
         addToast({
           type: 'warning',
-          title: 'AI Usage 未填写',
-          message: '请在 Redmine 页面填写 AI Usage 百分比后再生成报告',
+          title: t("usage.warning"),
+          message: t("usage.fillUsage"),
           duration: 6000,
         });
         hasShownWarningRef.current = true;
@@ -163,6 +176,8 @@ const FloatingBall = () => {
       setShowIssueReport(true);
     } else if (value === "weekly") {
       setShowWeeklyReport(true);
+    } else if (value === "settings") {
+      setShowSettings(true);
     } else if (value === "theme") {
       const newScheme = isDark ? 'light' : 'dark';
       setIsDark(!isDark);
@@ -485,7 +500,7 @@ const FloatingBall = () => {
                 letterSpacing: '0.3px',
               }}
             >
-              {usageWarning ? '⚠️ 请填写 AI Usage' : '选择功能'}
+              {usageWarning ? `⚠️ ${t("usage.fillUsageOnPage")}` : t("menu.selectFunction")}
             </span>
             <button
               onClick={() => setShowMenu(false)}
@@ -549,10 +564,10 @@ const FloatingBall = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
-            >
+              >
               <FileText size={16} style={{ color: '#3b82f6' }} />
             </div>
-            <span>Issue Report</span>
+            <span>{t("menu.issueReport")}</span>
           </button>
 
           <button
@@ -593,21 +608,19 @@ const FloatingBall = () => {
             >
               <BarChart3 size={16} style={{ color: '#22c55e' }} />
             </div>
-            <span>Weekly Report</span>
+            <span>{t("menu.weeklyReport")}</span>
           </button>
 
+          <div
+            style={{
+              height: '1px',
+              background: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+              margin: '8px 12px',
+            }}
+          />
 
-
-            <div
-              style={{
-                height: '1px',
-                background: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
-                margin: '8px 12px',
-              }}
-            />
-
-            <button
-              onClick={() => handleMenuSelect('theme')}
+          <button
+            onClick={() => handleMenuSelect('settings')}
             style={{
               width: '100%',
               padding: '12px 16px',
@@ -623,8 +636,8 @@ const FloatingBall = () => {
               fontSize: '14px',
               fontWeight: 500,
             }}
-            onMouseEnter={(e) =>{
-              e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(99, 102, 241, 0.08)';
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(168, 85, 247, 0.08)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'transparent';
@@ -635,25 +648,101 @@ const FloatingBall = () => {
                 width: '32px',
                 height: '32px',
                 borderRadius: '10px',
-                background: isDark ? 'rgba(251, 191, 36, 0.2)' : 'rgba(99, 102, 241, 0.1)',
+                background: isDark ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              {isDark ? (
-                <Sun size={16} style={{ color: '#fbbf24' }} />
-              ) : (
-                <Moon size={16} style={{ color: '#6366f1' }} />
-              )}
+              <Settings size={16} style={{ color: '#a855f7' }} />
             </div>
-            <span>{isDark ? '切换浅色模式' : '切换深色模式'}</span>
+            <span>{t("menu.settings")}</span>
           </button>
-        </div>
-      </div>
 
-      <IssueReportModal opened={showIssueReport} onClose={() => setShowIssueReport(false)} />
-      <WeeklyReportModal opened={showWeeklyReport} onClose={() => setShowWeeklyReport(false)} />
+            <div
+              style={{
+                height: '1px',
+                background: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
+                margin: '8px 12px',
+              }}
+            />
+
+            <button
+              onClick={() => handleMenuSelect('theme')}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: 'none',
+                borderRadius: '12px',
+                background: 'transparent',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                transition: 'all 0.15s ease',
+                color: isDark ? '#e2e8f0' : '#1e293b',
+                fontSize: '14px',
+                fontWeight: 500,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(99, 102, 241, 0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  background: isDark ? 'rgba(251, 191, 36, 0.2)' : 'rgba(99, 102, 241, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {isDark ? (
+                  <Sun size={16} style={{ color: '#fbbf24' }} />
+                ) : (
+                  <Moon size={16} style={{ color: '#6366f1' }} />
+                )}
+              </div>
+              <span>{isDark ? t("theme.switchToLight") : t("theme.switchToDark")}</span>
+            </button>
+          </div>
+        </div>
+
+      <IssueReportModal
+        opened={showIssueReport}
+        onClose={() => setShowIssueReport(false)}
+        locale={locale}
+      />
+      <WeeklyReportModal
+        opened={showWeeklyReport}
+        onClose={() => setShowWeeklyReport(false)}
+        locale={locale}
+      />
+      <SettingsModal
+        opened={showSettings}
+        onClose={() => setShowSettings(false)}
+        theme={isDark ? 'dark' : 'light'}
+        locale={locale}
+        onThemeChange={(theme) => {
+          const isDarkTheme = theme === 'dark';
+          setIsDark(isDarkTheme);
+          localStorage.setItem('issuer-color-scheme', isDarkTheme ? 'dark' : 'light');
+          if (isDarkTheme) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        }}
+        onLocaleChange={(newLocale) => {
+          setLocale(newLocale);
+          localStorage.setItem('issuer-locale', newLocale);
+        }}
+      />
       
       
       {/* Toast 通知容器 */}

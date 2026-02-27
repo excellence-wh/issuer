@@ -1,6 +1,8 @@
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import type { Locale } from "@/lib/i18n";
+import { getTranslation } from "@/lib/i18n";
 
 export const SolutionTextarea = ({
   value,
@@ -8,17 +10,20 @@ export const SolutionTextarea = ({
   onChange,
   disabled,
   llmLoading,
+  locale,
 }: {
   value: string;
   error?: string;
   onChange: (value: string) => void;
   disabled: boolean;
   llmLoading: boolean;
+  locale: Locale;
 }) => {
+  const t = (key: string) => getTranslation(locale, key);
   if (disabled || llmLoading) {
     return (
       <div className="space-y-2">
-        <Label>解决方案</Label>
+        <Label>{t("issueReport.solution")}</Label>
         <Skeleton className="h-20 w-full" />
       </div>
     );
@@ -26,9 +31,9 @@ export const SolutionTextarea = ({
 
   return (
     <div className="space-y-2">
-      <Label>解决方案</Label>
+      <Label>{t("issueReport.solution")}</Label>
       <Textarea
-        placeholder="描述具体的解决方案（点击AI基于修改记录生成）"
+        placeholder={t("issueReport.solutionPlaceholder")}
         rows={2}
         value={value}
         onChange={(e) => onChange(e.target.value)}

@@ -32,12 +32,14 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { ChevronsUpDown } from 'lucide-react';
+import { type Locale, getTranslation } from '@/lib/i18n';
 
 const FAVORITE_PROJECTS = ['65', '114'];
 
 interface WeeklyReportModalProps {
   opened: boolean;
   onClose: () => void;
+  locale: Locale;
 }
 
 interface Period {
@@ -65,7 +67,9 @@ interface Issue {
   project_id: string;
 }
 
-export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) => {
+export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModalProps) => {
+  const t = (key: string) => getTranslation(locale, key);
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,9 +103,9 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
       }
     } catch (err) {
       console.error('Failed to fetch projects:', err);
-      const errorMsg = '获取项目列表失败，请检查后端服务是否启动';
+      const errorMsg = t('weekly.projectListFailed');
       setError(errorMsg);
-      showToast('error', '网络错误', errorMsg);
+      showToast('error', t('toast.networkError'), errorMsg);
     }
   };
 
@@ -156,18 +160,18 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
 
   const handleGenerate = async () => {
     if (!selectedProjects || selectedProjects.length === 0) {
-      setError('请选择项目');
+      setError(t('weekly.selectProject'));
       return;
     }
 
     const { startDate, endDate } = getSelectedPeriod();
     if (!startDate || !endDate) {
-      setError('请选择周期');
+      setError(t('weekly.selectPeriod'));
       return;
     }
 
     if (startDate > endDate) {
-      setError('开始日期不能大于结束日期');
+      setError(t('weekly.dateRangeError'));
       return;
     }
 
@@ -192,7 +196,7 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
       setIssues(allIssues);
 
       if (allIssues.length === 0) {
-        setError('未找到符合条件的 issue');
+        setError(t('weekly.noIssuesFound'));
         setLoading(false);
         return;
       }
@@ -213,11 +217,11 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
       URL.revokeObjectURL(link.href);
 
       setSuccess(true);
-      showToast('success', '周报生成成功', `已生成 ${selectedProjects.length} 个项目的周报`);
+      showToast('success', t('toast.weeklyReportGenerated'), t('weekly.projectsGenerated').replace('{count}', String(selectedProjects.length)));
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : '生成报告失败';
+      const errorMsg = err instanceof Error ? err.message : t('toast.reportGenerateError');
       setError(errorMsg);
-      showToast('error', '周报生成失败', errorMsg);
+      showToast('error', t('toast.reportGenerateError'), errorMsg);
     } finally {
       setLoading(false);
     }
@@ -226,9 +230,9 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
   const generateSheet = (allProjectIssues: Issue[], formattedStartDate: string, formattedEndDate: string) => {
     const headers = [
       'Redmine No.', 'Project', 'Tracker', 'Description', 'Priority',
-      '总预估工时 (Redmine)', '预估工时', '系数工时',
+      t('weekly.totalEstimatedHours'), t('weekly.estimatedHours'), t('weekly.weightedHours'),
       'Need Impact Analysis', 'Is Study Issue', 'Seniority', 'Reopened Developer',
-      'Assignee', 'Due Date', 'Start Date', 'Resolved Date', '登记状态', '日期'
+      t('weekly.assignee'), t('weekly.dueDate'), t('weekly.startDate'), t('weekly.resolvedDate'), t('weekly.registrationStatus'), t('weekly.date')
     ];
 
     const rows: any[][] = [headers];
@@ -293,17 +297,17 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
 
   const selectedProjectsLabel = selectedProjects.length > 0
     ? selectedProjects.length === 1
-      ? projects.find(p => p.id === selectedProjects[0])?.name || `${selectedProjects.length} 个项目`
-      : `${selectedProjects.length} 个项目`
-    : '选择项目';
+      ? projects.find(p => p.id === selectedProjects[0])?.name || `${selectedProjects.length} ${t('weekly.selectProject')}`
+      : `${selectedProjects.length} ${t('weekly.selectProject')}`
+    : t('weekly.selectProject');
 
   return (
       <Dialog open={opened} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Weekly 报告</DialogTitle>
+          <DialogTitle>{t('menu.weeklyReport')}</DialogTitle>
           <DialogDescription>
-            生成周工作报告
+            {t('menu.weeklyReport')}
           </DialogDescription>
         </DialogHeader>
 
@@ -318,7 +322,7 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
             <AlertDescription className="flex justify-between items-center">
               {error}
               <Button variant="ghost" size="sm" onClick={() => setError(null)}>
-                关闭
+                {t('common.close')}
               </Button>
             </AlertDescription>
           </Alert>
@@ -329,7 +333,7 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
             <AlertDescription className="flex justify-between items-center">
               报告已生成
               <Button variant="ghost" size="sm" onClick={() => setSuccess(false)}>
-                关闭
+                {t('common.close')}
               </Button>
             </AlertDescription>
           </Alert>
@@ -337,7 +341,7 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
 
         <div className="space-y-4 mt-4 overflow-y-auto max-h-[calc(85vh-180px)] pr-2">
           <div className="space-y-2">
-            <Label>项目</Label>
+            <Label>{t('weekly.selectProject')}</Label>
             <Popover open={openProjects} onOpenChange={setOpenProjects}>
               <PopoverTrigger asChild>
                 <Button
@@ -372,7 +376,7 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
           </div>
 
           <div className="space-y-2">
-            <Label>周期（上周四 ~ 本周三）</Label>
+            <Label>{t('weekly.selectPeriod')}</Label>
             <div className="flex gap-2">
               <Select
                 value={isCustomPeriod ? 'custom' : String(selectedPeriodIndex)}
@@ -380,13 +384,13 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
                 disabled={loading}
               >
                 <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="选择周期" />
+                  <SelectValue placeholder={t('weekly.selectPeriod')} />
                 </SelectTrigger>
                 <SelectContent>
                   {periods.map((p, i) => (
                     <SelectItem key={i} value={String(i)}>{p.label}</SelectItem>
                   ))}
-                  <SelectItem value="custom">自定义</SelectItem>
+                  <SelectItem value="custom">{t('weekly.custom')}</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -395,7 +399,7 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
                 onClick={() => setIsCustomPeriod(!isCustomPeriod)}
                 disabled={loading}
               >
-                {isCustomPeriod ? '取消自定义' : '自定义'}
+                {isCustomPeriod ? t('weekly.cancelCustom') : t('weekly.custom')}
               </Button>
             </div>
           </div>
@@ -403,7 +407,7 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
           {isCustomPeriod && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>开始日期</Label>
+                <Label>{t('weekly.startDate')}</Label>
                 <Input
                   type="date"
                   value={customStartDate}
@@ -412,7 +416,7 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
                 />
               </div>
               <div className="space-y-2">
-                <Label>结束日期</Label>
+                <Label>{t('weekly.dueDate')}</Label>
                 <Input
                   type="date"
                   value={customEndDate}
@@ -459,10 +463,10 @@ export const WeeklyReportModal = ({ opened, onClose }: WeeklyReportModalProps) =
               onClick={handleGenerate}
               disabled={!selectedProjects || selectedProjects.length === 0 || loading}
             >
-              {loading ? '生成中...' : '生成'}
+              {loading ? t('common.generating') : t('common.generate')}
             </Button>
             <Button variant="outline" onClick={handleClose} disabled={loading}>
-              取消
+              {t('common.cancel')}
             </Button>
           </div>
         </div>

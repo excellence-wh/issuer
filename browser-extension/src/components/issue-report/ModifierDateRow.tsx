@@ -1,6 +1,8 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Locale } from "@/lib/i18n";
+import { getTranslation } from "@/lib/i18n";
 
 const normalizeDate = (dateStr: string): string => {
   if (!dateStr) {
@@ -32,6 +34,7 @@ export const ModifierDateRow = ({
   onModifierChange,
   onResolvedDateChange,
   loading,
+  locale,
 }: {
   modifier: string;
   modifierError?: string;
@@ -39,16 +42,18 @@ export const ModifierDateRow = ({
   onModifierChange: (value: string) => void;
   onResolvedDateChange: (value: string) => void;
   loading: boolean;
+  locale: Locale;
 }) => {
+  const t = (key: string) => getTranslation(locale, key);
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>修改人</Label>
+          <Label>{t("issueReport.modifier")}</Label>
           <Skeleton className="h-10 w-full" />
         </div>
         <div className="space-y-2">
-          <Label>修改日期</Label>
+          <Label>{t("issueReport.modifiedDate")}</Label>
           <Skeleton className="h-10 w-full" />
         </div>
       </div>
@@ -58,9 +63,9 @@ export const ModifierDateRow = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Label>修改人</Label>
+        <Label>{t("issueReport.modifier")}</Label>
         <Input
-          placeholder="修改人"
+          placeholder={t("issueReport.modifierPlaceholder")}
           value={modifier || "Zhuo Cheng"}
           onChange={(e) => onModifierChange(e.target.value)}
           disabled={loading}
@@ -68,7 +73,7 @@ export const ModifierDateRow = ({
         {modifierError && <p className="text-sm text-red-500">{modifierError}</p>}
       </div>
       <div className="space-y-2">
-        <Label>修改日期</Label>
+        <Label>{t("issueReport.modifiedDate")}</Label>
         <Input
           type="date"
           value={normalizeDate(resolvedDate)}

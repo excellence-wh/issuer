@@ -7,6 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Locale } from "@/lib/i18n";
+import { getTranslation } from "@/lib/i18n";
 
 const ISSUE_TYPES = [
   "Bug",
@@ -21,15 +23,18 @@ export const IssueTypeSelect = ({
   value,
   onChange,
   disabled,
+  locale,
 }: {
   value: string;
   onChange: (value: string) => void;
   disabled: boolean;
+  locale: Locale;
 }) => {
+  const t = (key: string) => getTranslation(locale, key);
   if (disabled) {
     return (
       <div className="space-y-2">
-        <Label>Issue 类型</Label>
+        <Label>{t("issueReport.issueType")}</Label>
         <Skeleton className="h-10 w-full" />
       </div>
     );
@@ -37,10 +42,10 @@ export const IssueTypeSelect = ({
 
   return (
     <div className="space-y-2">
-      <Label>Issue 类型</Label>
+      <Label>{t("issueReport.issueType")}</Label>
       <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="选择类型" />
+          <SelectValue placeholder={t("issueReport.selectType")} />
         </SelectTrigger>
         <SelectContent>
           {ISSUE_TYPES.map((type) => (
