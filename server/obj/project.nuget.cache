@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "dgSpecHash": "3z3rxXbVffY=",
+  "success": true,
+  "projectFilePath": "D:\\excellence.wh\\projects\\issuer\\server\\IssuerServer.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.4\\microsoft.aspnetcore.openapi.10.0.4.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\microsoft.extensions.apidescription.server\\10.0.0\\microsoft.extensions.apidescription.server.10.0.0.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\microsoft.extensions.dependencymodel\\8.0.2\\microsoft.extensions.dependencymodel.8.0.2.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\microsoft.extensions.hosting.windowsservices\\10.0.1\\microsoft.extensions.hosting.windowsservices.10.0.1.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\microsoft.openapi\\2.4.1\\microsoft.openapi.2.4.1.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\serilog\\4.0.0\\serilog.4.0.0.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\serilog.aspnetcore\\8.0.3\\serilog.aspnetcore.8.0.3.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\serilog.extensions.hosting\\8.0.0\\serilog.extensions.hosting.8.0.0.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\serilog.extensions.logging\\8.0.0\\serilog.extensions.logging.8.0.0.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\serilog.formatting.compact\\2.0.0\\serilog.formatting.compact.2.0.0.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\serilog.settings.configuration\\8.0.4\\serilog.settings.configuration.8.0.4.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\serilog.sinks.console\\6.0.0\\serilog.sinks.console.6.0.0.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\serilog.sinks.debug\\2.0.0\\serilog.sinks.debug.2.0.0.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\serilog.sinks.file\\6.0.0\\serilog.sinks.file.6.0.0.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\swashbuckle.aspnetcore\\10.1.5\\swashbuckle.aspnetcore.10.1.5.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\swashbuckle.aspnetcore.swagger\\10.1.5\\swashbuckle.aspnetcore.swagger.10.1.5.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\swashbuckle.aspnetcore.swaggergen\\10.1.5\\swashbuckle.aspnetcore.swaggergen.10.1.5.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\swashbuckle.aspnetcore.swaggerui\\10.1.5\\swashbuckle.aspnetcore.swaggerui.10.1.5.nupkg.sha512",
+    "C:\\Users\\cheng_zhuo\\.nuget\\packages\\system.serviceprocess.servicecontroller\\10.0.1\\system.serviceprocess.servicecontroller.10.0.1.nupkg.sha512"
+  ],
+  "logs": []
+}
