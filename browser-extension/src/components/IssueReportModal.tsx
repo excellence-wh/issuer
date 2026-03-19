@@ -466,16 +466,12 @@ export const IssueReportModal = ({
       return;
     }
 
-    const usage = getUsageFromPage();
-    if (!usage || usage.aiUsage === "" || usage.aiUsage === "0") {
-      setError(t("issue.fillUsageFirst"));
-      return;
-    }
-
     if (!validateForm()) {
       setError(t("issue.fillRequiredFields"));
       return;
     }
+
+    const usage = getUsageFromPage();
 
     try {
       const formData: ReportFormData = {
@@ -483,7 +479,7 @@ export const IssueReportModal = ({
         title: title,
         files: files || t("common.none"),
         modifier: modifier || t("common.none"),
-        modifyDate: usage.resolvedDate || formatDate(),
+        modifyDate: usage?.resolvedDate || formatDate(),
         reason: reason || t("common.none"),
         solution: solution || t("common.none"),
         debuggingResults: {
@@ -516,7 +512,7 @@ export const IssueReportModal = ({
   };
 
   return (
-    <Dialog open={opened}>
+    <Dialog open={opened} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className="w-[95vw] max-w-[800px] max-h-[85vh] overflow-hidden flex flex-col"
         showCloseButton={true}
@@ -538,7 +534,7 @@ export const IssueReportModal = ({
         )}
 
         {success && (
-          <Alert className="mb-4 bg-green-100 border-green-200">
+          <Alert variant="success" className="mb-4">
             <AlertDescription className="flex justify-between items-center">
               {t("toast.reportGenerated")}: {issueData?.id}.xlsx
               <Button variant="ghost" size="sm" onClick={() => setSuccess(false)}>
@@ -579,7 +575,7 @@ export const IssueReportModal = ({
             {hgLoading ? (
               <div className="h-20 bg-muted/30 rounded-lg animate-pulse" />
             ) : hgError ? (
-              <div className="p-4 text-sm text-red-500 bg-red-50 rounded-lg">
+              <div className="p-4 text-sm rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
                 {hgError}
               </div>
             ) : (

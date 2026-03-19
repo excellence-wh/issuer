@@ -25,20 +25,20 @@ const FileStatusBadge = ({ status, locale }: { status: string; locale: Locale })
   const getStatusConfig = () => {
     switch (status.toUpperCase()) {
       case "A":
-        return { label: t("issueReport.new"), symbol: "+", color: "bg-green-100 text-green-700 border-green-200" };
+        return { label: t("issueReport.new"), symbol: "+", variant: "success" as const };
       case "D":
-        return { label: t("issueReport.deleted"), symbol: "-", color: "bg-red-100 text-red-700 border-red-200" };
+        return { label: t("issueReport.deleted"), symbol: "-", variant: "destructive" as const };
       case "M":
-        return { label: t("issueReport.modified"), symbol: "~", color: "bg-blue-100 text-blue-700 border-blue-200" };
+        return { label: t("issueReport.modified"), symbol: "~", variant: "secondary" as const };
       default:
-        return { label: status, symbol: "?", color: "bg-gray-100 text-gray-700 border-gray-200" };
+        return { label: status, symbol: "?", variant: "outline" as const };
     }
   };
   const config = getStatusConfig();
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${config.color}`}>
+    <Badge variant={config.variant}>
       {config.symbol} {config.label}
-    </span>
+    </Badge>
   );
 };
 
@@ -133,10 +133,10 @@ export const FileListPanel = ({ files, locale }: { files: HgFileChange[]; locale
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
               {Object.entries(statusCounts).map(([status, count]) => (
-                <Badge key={status} variant="outline" className="text-xs">
-                  {status === "A" && <span className="text-green-600">+</span>}
-                  {status === "D" && <span className="text-red-600">-</span>}
-                  {status === "M" && <span className="text-blue-600">~</span>}
+                <Badge key={status} variant={status === "A" ? "success" : status === "D" ? "destructive" : "secondary"} className="text-xs">
+                  {status === "A" && "+"}
+                  {status === "D" && "-"}
+                  {status === "M" && "~"}
                   <span className="ml-1">{count}</span>
                 </Badge>
               ))}
@@ -162,7 +162,7 @@ export const FileListPanel = ({ files, locale }: { files: HgFileChange[]; locale
                 <div className="relative min-w-0 flex-1">
                   <FilePathDisplay path={file.path} onCopy={handleCopy} locale={locale} />
                   {copiedFile === (file.path.split("/").pop()) && (
-                    <span className="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-green-600 bg-white px-1 rounded">
+                    <span className="absolute right-0 top-1/2 -translate-y-1/2 text-xs text-muted-foreground bg-background px-1 rounded border">
                       {t("issueReport.copied")}
                     </span>
                   )}

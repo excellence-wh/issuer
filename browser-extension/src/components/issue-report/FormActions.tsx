@@ -38,7 +38,7 @@ export const FormActions = ({
             variant="ghost"
             size="sm"
             onClick={onClearDraft}
-            className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/20"
           >
             <Trash2 className="w-4 h-4 mr-1" />
             {t("issueReport.clearDraft")}

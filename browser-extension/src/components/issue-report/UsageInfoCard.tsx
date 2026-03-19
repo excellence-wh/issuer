@@ -41,11 +41,11 @@ export const UsageInfoCard = ({
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-green-100">
+            <Badge variant="success">
               {t("usage.aiUsage")}: {usageInfo.aiUsage}%
             </Badge>
             {usageInfo.resolvedDate && (
-              <Badge variant="outline" className="bg-blue-100">
+              <Badge variant="secondary">
                 {t("weekly.resolvedDate")}: {usageInfo.resolvedDate}
               </Badge>
             )}

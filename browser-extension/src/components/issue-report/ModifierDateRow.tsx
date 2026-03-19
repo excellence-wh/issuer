@@ -70,7 +70,7 @@ export const ModifierDateRow = ({
           onChange={(e) => onModifierChange(e.target.value)}
           disabled={loading}
         />
-        {modifierError && <p className="text-sm text-red-500">{modifierError}</p>}
+        {modifierError && <p className="text-sm text-destructive">{modifierError}</p>}
       </div>
       <div className="space-y-2">
         <Label>{t("issueReport.modifiedDate")}</Label>

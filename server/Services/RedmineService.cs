@@ -112,6 +112,7 @@ public class RedmineService
                         Tracker = issue.TryGetProperty("tracker", out var t) ? t.GetProperty("name").GetString() : null,
                         Priority = issue.TryGetProperty("priority", out var p) ? p.GetProperty("name").GetString() : null,
                         EstimatedHours = issue.TryGetProperty("estimated_hours", out var eh) && eh.ValueKind == JsonValueKind.Number ? eh.GetDouble() : 0,
+                        SpentHours = issue.TryGetProperty("total_spent_hours", out var tsh) && tsh.ValueKind == JsonValueKind.Number ? tsh.GetDouble() : 0,
                         AssignedTo = assignedTo,
                         StartDate = issue.TryGetProperty("start_date", out var sd) ? sd.GetString() : null,
                         DueDate = issue.TryGetProperty("due_date", out var dd) ? dd.GetString() : null,

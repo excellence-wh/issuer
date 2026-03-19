@@ -45,3 +45,12 @@ pnpm-lock.yaml
 nul
 browser-extension/pnpm-lock.yaml
 server/pnpm-lock.yaml
+
+.vs
+
+# Build outputs
+obj
+bin
+server/obj
+server/bin
+server/bin/Release

@@ -57,6 +57,7 @@ public static class RedmineRoutes
                     Tracker = i.Tracker,
                     Priority = i.Priority,
                     EstimatedHours = i.EstimatedHours,
+                    SpentHours = i.SpentHours,
                     AssignedTo = i.AssignedTo,
                     StartDate = i.StartDate,
                     DueDate = i.DueDate,

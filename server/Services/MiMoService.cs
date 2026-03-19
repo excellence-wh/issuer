@@ -7,13 +7,13 @@ using Serilog;
 namespace IssuerServer.Services;
 
 /// <summary>
-/// MiMo LLM 集成服务
+/// DeepSeek LLM 集成服务
 /// </summary>
 public class MiMoService
 {
-    private const string BaseUrl = "https://api.xiaomimimo.com/v1";
-    private const string ApiKey = "sk-cz2zszvwwktha6sn2a2thqegxttci3jagymk3yichh0g6991";
-    private const string Model = "mimo-v2-flash";
+    private const string BaseUrl = "https://ai.xingr.com/v1";
+    private const string ApiKey = "no-needed";
+    private const string Model = "deepseek-v32-exp";
 
     private readonly HttpClient _httpClient;
 
@@ -21,7 +21,7 @@ public class MiMoService
     {
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("api-key", ApiKey);
-        Log.Information("MiMoService 已初始化, 模型: {Model}", Model);
+        Log.Information("LocalModelService 已初始化, 模型: {Model}", Model);
     }
 
     /// <summary>
@@ -31,7 +31,7 @@ public class MiMoService
     {
         try
         {
-            Log.Information("调用 MiMo LLM API, Model: {Model}", Model);
+            Log.Information("调用 LocalModel API, Model: {Model}", Model);
             
             var requestBody = new
             {
@@ -41,11 +41,12 @@ public class MiMoService
                     new { role = "system", content = systemPrompt },
                     new { role = "user", content = userPrompt }
                 },
-                max_completion_tokens = 2000,
-                temperature = 0.7,
-                top_p = 0.95,
-                stream = false,
-                thinking = new { type = "disabled" }
+                max_tokens = 4096,
+                temperature = 0.2,
+                top_p = 0.85,
+                frequency_penalty = 0,
+                presence_penalty = 0,
+                seed = 42
             };
 
             var json = JsonSerializer.Serialize(requestBody);
@@ -55,8 +56,8 @@ public class MiMoService
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                Log.Error("MiMo API 请求失败: {StatusCode}, Error: {Error}", response.StatusCode, error);
-                throw new Exception($"MiMo API error: {response.StatusCode} - {error}");
+                Log.Error("LocalModel API 请求失败: {StatusCode}, Error: {Error}", response.StatusCode, error);
+                throw new Exception($"LocalModel API error: {response.StatusCode} - {error}");
             }
 
             var responseJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
@@ -66,12 +67,12 @@ public class MiMoService
                 .GetProperty("content")
                 .GetString() ?? string.Empty;
 
-            Log.Information("MiMo LLM 响应长度: {Length}", contentResult.Length);
+            Log.Information("LocalModel 响应长度: {Length}", contentResult.Length);
             return contentResult;
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "调用 MiMo LLM 失败");
+            Log.Error(ex, "调用 LocalModel 失败");
             throw;
         }
     }

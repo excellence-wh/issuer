@@ -35,11 +35,10 @@ export const IssueInfoHeader = ({
             </Badge>
             {issueData.status && (
               <Badge
-                variant="outline"
-                className={
+                variant={
                   issueData.status.toLowerCase().includes("closed")
-                    ? "bg-green-50 text-green-700 border-green-200"
-                    : "bg-blue-50 text-blue-700 border-blue-200"
+                    ? "success"
+                    : "secondary"
                 }
               >
                 {issueData.status}

@@ -68,6 +68,7 @@ public class RedmineIssue
     public string? Tracker { get; set; }
     public string? Priority { get; set; }
     public double EstimatedHours { get; set; }
+    public double SpentHours { get; set; }
     public string? AssignedTo { get; set; }
     public string? StartDate { get; set; }
     public string? DueDate { get; set; }

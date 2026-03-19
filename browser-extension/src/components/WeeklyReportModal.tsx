@@ -59,6 +59,7 @@ interface Issue {
   tracker: string;
   priority: string;
   estimated_hours: number;
+  spent_hours: number;
   assigned_to: string;
   start_date: string;
   due_date: string;
@@ -230,7 +231,7 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
   const generateSheet = (allProjectIssues: Issue[], formattedStartDate: string, formattedEndDate: string) => {
     const headers = [
       t('weekly.redmineNo'), t('weekly.project'), t('weekly.tracker'), t('weekly.description'), t('weekly.priority'),
-      t('weekly.totalEstimatedHours'), t('weekly.estimatedHours'), t('weekly.weightedHours'),
+      t('weekly.totalEstimatedHours'), t('weekly.estimatedHours'), t('weekly.weightedHours'), t('weekly.spentHours'),
       t('weekly.needImpactAnalysis'), t('weekly.isStudyIssue'), t('weekly.seniority'), t('weekly.reopenedDeveloper'),
       t('weekly.assignee'), t('weekly.dueDate'), t('weekly.startDate'), t('weekly.resolvedDate'), t('weekly.registrationStatus'), t('weekly.date')
     ];
@@ -248,8 +249,9 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
         issue.estimated_hours,
         issue.estimated_hours,
         issue.estimated_hours,
+        issue.spent_hours,
         '', '', '', '',
-        t('weekly.reopenedDeveloperName'),
+        '程卓',
         formattedEndDate,
         formattedStartDate,
         formattedEndDate,
@@ -263,7 +265,7 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
 
     const colWidths = [
       { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 100 }, { wch: 12 },
-      { wch: 12 }, { wch: 12 }, { wch: 12 },
+      { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
       { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 15 },
       { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 15 }
     ];
@@ -329,7 +331,7 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
         )}
 
         {success && (
-        <Alert className="mb-4 bg-green-100 border-green-200">
+          <Alert variant="success" className="mb-4">
             <AlertDescription className="flex justify-between items-center">
               {t('toast.reportGenerated')}
               <Button variant="ghost" size="sm" onClick={() => setSuccess(false)}>

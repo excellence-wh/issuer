@@ -39,7 +39,7 @@ export const SolutionTextarea = ({
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled || llmLoading}
       />
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 };
