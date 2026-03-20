@@ -157,7 +157,7 @@ public class RedmineService
 
             while (true)
             {
-                var url = $"{RedmineBaseUrl}/issues.json?cf_29={userId}&created_on=>={startDate}&created_on=<<={endDate}&limit={limit}&offset={offset}";
+                var url = $"{RedmineBaseUrl}/issues.json?cf_29={userId}&created_on=>={startDate}&created_on=<={endDate}&limit={limit}&offset={offset}";
                 var data = await GetAsync(url);
                 var issues = data.GetProperty("issues");
 

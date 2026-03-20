@@ -10,7 +10,6 @@ import { Card, CardContent } from '@/components/ui/card';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -31,7 +30,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { ChevronsUpDown } from 'lucide-react';
+import { ChevronsUpDown, Loader2 } from 'lucide-react';
 import { type Locale, getTranslation } from '@/lib/i18n';
 
 const FAVORITE_PROJECTS = ['65', '114'];
@@ -58,14 +57,14 @@ interface Issue {
   subject: string;
   tracker: string;
   priority: string;
-  estimated_hours: number;
-  spent_hours: number;
-  assigned_to: string;
-  start_date: string;
-  due_date: string;
-  created_on: string;
-  resolved_date: string;
-  project_id: string;
+  estimatedHours: number;
+  spentHours: number;
+  assignedTo: string;
+  startDate: string;
+  dueDate: string;
+  createdOn: string;
+  resolvedDate: string;
+  projectId: string;
 }
 
 export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModalProps) => {
@@ -83,12 +82,14 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
   const [isCustomPeriod, setIsCustomPeriod] = useState(false);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [openProjects, setOpenProjects] = useState(false);
+  const [projectSearch, setProjectSearch] = useState('');
 
   useEffect(() => {
     if (opened) {
       setSuccess(false);
       setError(null);
       setIssues([]);
+      setProjectSearch('');
       fetchProjects();
       generatePeriods();
     }
@@ -239,17 +240,17 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
     const rows: any[][] = [headers];
 
     allProjectIssues.forEach(issue => {
-      const projectName = projects.find(p => p.id === issue.project_id)?.name || issue.project_id;
+      const projectName = projects.find(p => p.id === issue.projectId)?.name || issue.projectId;
       rows.push([
         issue.id,
         projectName,
         issue.tracker,
         issue.subject,
         issue.priority,
-        issue.estimated_hours,
-        issue.estimated_hours,
-        issue.estimated_hours,
-        issue.spent_hours,
+        issue.estimatedHours,
+        issue.estimatedHours,
+        issue.estimatedHours,
+        issue.spentHours,
         '', '', '', '',
         '程卓',
         formattedEndDate,
@@ -315,7 +316,7 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
 
         {loading && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50">
-            <Skeleton className="h-8 w-8 rounded-full" />
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         )}
 
@@ -358,20 +359,30 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-full p-0">
+                <div className="p-2 border-b">
+                  <Input
+                    placeholder={t('weekly.selectProject')}
+                    value={projectSearch}
+                    onChange={(e) => setProjectSearch(e.target.value)}
+                    className="h-8"
+                  />
+                </div>
                 <div className="max-h-60 overflow-auto p-2">
-                  {projects.map((project) => (
-                    <div
-                      key={project.id}
-                      className="flex items-center space-x-2 py-2 px-2 hover:bg-accent rounded cursor-pointer"
-                      onClick={() => toggleProject(project.id)}
-                    >
-                      <Checkbox
-                        checked={selectedProjects.includes(project.id)}
-                        onCheckedChange={() => toggleProject(project.id)}
-                      />
-                      <span className="text-sm">{project.name}</span>
-                    </div>
-                  ))}
+                  {projects
+                    .filter(p => p.name.toLowerCase().includes(projectSearch.toLowerCase()))
+                    .map((project) => (
+                      <div
+                        key={project.id}
+                        className="flex items-center space-x-2 py-2 px-2 hover:bg-accent rounded cursor-pointer"
+                        onClick={() => toggleProject(project.id)}
+                      >
+                        <Checkbox
+                          checked={selectedProjects.includes(project.id)}
+                          onCheckedChange={() => toggleProject(project.id)}
+                        />
+                        <span className="text-sm">{project.name}</span>
+                      </div>
+                    ))}
                 </div>
               </PopoverContent>
             </Popover>
@@ -448,13 +459,13 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
                     <TableCell className="whitespace-nowrap">{issue.id}</TableCell>
                     <TableCell className="whitespace-nowrap hidden sm:table-cell">{issue.tracker}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{issue.subject}</TableCell>
-                    <TableCell className="whitespace-nowrap hidden md:table-cell">{issue.resolved_date}</TableCell>
+                    <TableCell className="whitespace-nowrap hidden md:table-cell">{issue.resolvedDate}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
                 </Table>
                 {issues.length > 10 && (
-                  <p className="text-xs text-gray-500 mt-2">{t('weekly.moreCount').replace('{count}', String(issues.length))}</p>
+                  <p className="text-xs text-muted-foreground mt-2">{t('weekly.moreCount').replace('{count}', String(issues.length))}</p>
                 )}
               </CardContent>
             </Card>

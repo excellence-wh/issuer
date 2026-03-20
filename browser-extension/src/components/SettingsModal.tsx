@@ -7,17 +7,28 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, FolderOpen, Database, Monitor, Globe } from "lucide-react";
+import { Settings, FolderOpen, Database, Monitor, Globe, ChevronsUpDown, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Locale } from "@/lib/i18n";
 import { getTranslation, locales } from "@/lib/i18n";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface SettingsData {
   repoPath: string;
-  defaultProjectId: string;
+  defaultProjectIds: string[];
   autoSave: boolean;
   theme: "light" | "dark" | "system";
   locale: Locale;
+}
+
+interface Project {
+  id: string;
+  name: string;
 }
 
 interface SettingsModalProps {
@@ -31,7 +42,7 @@ interface SettingsModalProps {
 
 const DEFAULT_SETTINGS: SettingsData = {
   repoPath: "",
-  defaultProjectId: "",
+  defaultProjectIds: [],
   autoSave: true,
   theme: "system",
   locale: "zh-CN",
@@ -69,6 +80,10 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const [settings, setSettings] = useState<SettingsData>(DEFAULT_SETTINGS);
   const [hasChanges, setHasChanges] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [openProjects, setOpenProjects] = useState(false);
+  const [projectSearch, setProjectSearch] = useState('');
+  const [loadingProjects, setLoadingProjects] = useState(false);
 
   const t = (key: string) => getTranslation(locale, key);
 
@@ -80,8 +95,39 @@ export function SettingsModal({
         onLocaleChange(loaded.locale);
       }
       setHasChanges(false);
+      setProjectSearch('');
+      fetchProjects();
     }
   }, [opened, locale, onLocaleChange]);
+
+  const fetchProjects = async () => {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    setLoadingProjects(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/redmine/projects`);
+      const data = await response.json();
+      if (data.success) {
+        setProjects(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch projects:', err);
+    } finally {
+      setLoadingProjects(false);
+    }
+  };
+
+  const toggleProject = (projectId: string) => {
+    const newIds = settings.defaultProjectIds.includes(projectId)
+      ? settings.defaultProjectIds.filter(id => id !== projectId)
+      : [...settings.defaultProjectIds, projectId];
+    handleChange('defaultProjectIds', newIds);
+  };
+
+  const selectedProjectsLabel = settings.defaultProjectIds.length > 0
+    ? settings.defaultProjectIds
+        .map(id => projects.find(p => p.id === id)?.name || id)
+        .join(', ')
+    : t('common.select');
 
   const handleSave = useCallback(() => {
     saveSettings(settings);
@@ -95,7 +141,7 @@ export function SettingsModal({
     onClose();
   }, [settings, theme, locale, onThemeChange, onLocaleChange, onClose]);
 
-  const handleChange = (key: keyof SettingsData, value: string | boolean) => {
+  const handleChange = (key: keyof SettingsData, value: string | boolean | string[]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
     setHasChanges(true);
   };
@@ -129,16 +175,55 @@ export function SettingsModal({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="defaultProjectId" className="flex items-center gap-2">
+            <Label className="flex items-center gap-2">
               <Database size={16} />
               {t("common.defaultProject")}
             </Label>
-            <Input
-              id="defaultProjectId"
-              value={settings.defaultProjectId}
-              onChange={(e) => handleChange("defaultProjectId", e.target.value)}
-              placeholder="crm, esb, hrm, etc."
-            />
+            <Popover open={openProjects} onOpenChange={setOpenProjects}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openProjects}
+                  className="w-full justify-between"
+                  disabled={loadingProjects}
+                >
+                  <span className="truncate">{selectedProjectsLabel}</span>
+                  {loadingProjects ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <div className="p-2 border-b">
+                  <Input
+                    placeholder={t("common.select")}
+                    value={projectSearch}
+                    onChange={(e) => setProjectSearch(e.target.value)}
+                    className="h-8"
+                  />
+                </div>
+                <div className="max-h-60 overflow-auto p-2">
+                  {projects
+                    .filter(p => p.name.toLowerCase().includes(projectSearch.toLowerCase()))
+                    .map((project) => (
+                      <div
+                        key={project.id}
+                        className="flex items-center space-x-2 py-2 px-2 hover:bg-accent rounded cursor-pointer"
+                        onClick={() => toggleProject(project.id)}
+                      >
+                        <Checkbox
+                          checked={settings.defaultProjectIds.includes(project.id)}
+                          onCheckedChange={() => toggleProject(project.id)}
+                        />
+                        <span className="text-sm">{project.name}</span>
+                      </div>
+                    ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             <p className="text-xs text-muted-foreground">
               {t("common.defaultProjectDesc")}
             </p>
