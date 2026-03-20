@@ -84,7 +84,9 @@ try
     // Port monitor 服务与命令执行器
     builder.Services.Configure<IssuerServer.Models.PortMonitorOptions>(builder.Configuration.GetSection("PortMonitor"));
     builder.Services.AddSingleton<ICommandExecutor, CommandExecutor>();
-    builder.Services.AddHostedService<PortMonitorService>();
+    // Register concrete PortMonitorService so we can trigger it at startup and also register as hosted service
+    builder.Services.AddSingleton<PortMonitorService>();
+    builder.Services.AddHostedService(provider => provider.GetRequiredService<PortMonitorService>());
 
     // 将主机配置为作为 Windows Service 运行
     builder.Host.UseWindowsService();
@@ -100,6 +102,21 @@ try
 
     // 应用 CORS 中间件
     app.UseCors("AllowAll");
+
+    // 在应用启动后立即触发一次 PortMonitor 检查（后台服务已注册）
+    try
+    {
+        var svc = app.Services.GetService<PortMonitorService>();
+        if (svc != null)
+        {
+            // 不阻塞主线程太久，启动时给 30s 超时
+            _ = Task.Run(async () => await svc.TriggerOnStartupAsync(CancellationToken.None));
+        }
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Error while triggering PortMonitor on startup");
+    }
 
 
     // 启用 OpenAPI 文档生成

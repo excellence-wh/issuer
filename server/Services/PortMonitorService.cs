@@ -18,6 +18,20 @@ namespace IssuerServer.Services;
         _executor = executor;
     }
 
+    // Provide a simple startup trigger that can be called from Program.cs
+    public async Task TriggerOnStartupAsync(CancellationToken ct)
+    {
+        if (!_options.Enabled) return;
+        try
+        {
+            await CheckOnceAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "PortMonitorService: error during startup trigger");
+        }
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (!_options.Enabled)
