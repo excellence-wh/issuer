@@ -407,16 +407,6 @@ export const IssueReportModal = ({
     }
   };
 
-  const refreshUsage = () => {
-    const usage = getUsageFromPage();
-    setUsageInfo(usage);
-    if (usage && (usage.aiUsage === "" || usage.aiUsage === "0")) {
-      setUsageWarning(t("usage.fillUsageOnPage"));
-    } else {
-      setUsageWarning(null);
-    }
-  };
-
   const handleGenerateWithLLM = async () => {
     if (!issueData) {
       setError(t("issue.issueEmpty"));
@@ -550,7 +540,6 @@ export const IssueReportModal = ({
               issueData={issueData}
               usageInfo={usageInfo}
               usageWarning={usageWarning}
-              onRefresh={refreshUsage}
               locale={locale}
             />
 

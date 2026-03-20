@@ -13,13 +13,11 @@ export const IssueInfoHeader = ({
   issueData,
   usageInfo,
   usageWarning,
-  onRefresh,
   locale,
 }: {
   issueData: IssueData;
   usageInfo: UsageInfo | null;
   usageWarning: string | null;
-  onRefresh: () => void;
   locale: Locale;
 }) => {
   return (
@@ -53,7 +51,6 @@ export const IssueInfoHeader = ({
           <UsageInfoCard
             usageInfo={usageInfo}
             usageWarning={usageWarning}
-            onRefresh={onRefresh}
             locale={locale}
           />
         </div>

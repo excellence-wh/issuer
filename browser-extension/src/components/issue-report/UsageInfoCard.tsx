@@ -1,6 +1,5 @@
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertDescription } from "@/components/ui/alert";
 import type { Locale } from "@/lib/i18n";
@@ -14,23 +13,18 @@ interface UsageInfo {
 export const UsageInfoCard = ({
   usageInfo,
   usageWarning,
-  onRefresh,
   locale,
 }: {
   usageInfo: UsageInfo | null;
   usageWarning: string | null;
-  onRefresh: () => void;
   locale: Locale;
 }) => {
   const t = (key: string) => getTranslation(locale, key);
   if (usageWarning) {
     return (
       <Alert variant="default" className="bg-yellow-100 border-yellow-200">
-        <AlertDescription className="flex items-center gap-2">
+        <AlertDescription>
           {usageWarning}
-          <Button variant="ghost" size="sm" onClick={onRefresh}>
-            {t("common.refresh")}
-          </Button>
         </AlertDescription>
       </Alert>
     );

@@ -158,17 +158,37 @@ export function SettingsModal({
 
         <div className="space-y-6 py-4">
           <div className="space-y-2">
-            <Label htmlFor="repoPath" className="flex items-center gap-2">
+            <Label className="flex items-center gap-2">
               <FolderOpen size={16} />
               {t("common.repoPath")}
             </Label>
-            <Input
-              id="repoPath"
-              value={settings.repoPath}
-              onChange={(e) => handleChange("repoPath", e.target.value)}
-              placeholder="D:/projects/CRM"
-              className="font-mono text-sm"
-            />
+            <div className="flex gap-2">
+              <Input
+                value={settings.repoPath}
+                onChange={(e) => handleChange("repoPath", e.target.value)}
+                placeholder="D:/projects/CRM"
+                className="font-mono text-sm flex-1"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.hg,.git';
+                  input.onchange = (e) => {
+                    const files = (e.target as HTMLInputElement).files;
+                    if (files && files.length > 0) {
+                      const path = files[0].webkitRelativePath.split('/')[0];
+                      handleChange('repoPath', path);
+                    }
+                  };
+                  input.click();
+                }}
+              >
+                <FolderOpen size={16} />
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
               {t("common.repoPathDesc")}
             </p>
