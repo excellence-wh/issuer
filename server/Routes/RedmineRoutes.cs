@@ -167,5 +167,27 @@ public static class RedmineRoutes
                 return Results.Problem(ex.Message);
             }
         });
+
+        // Kill listeners on configured port and disable monitoring
+        // POST /api/redmine/kill-and-stop
+        group.MapPost("/kill-and-stop", async (IServiceProvider sp) =>
+        {
+            try
+            {
+                var svc = sp.GetService<PortMonitorService>();
+                if (svc == null) return Results.Problem("PortMonitorService not registered");
+
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                var killed = await svc.KillListenersAsync(cts.Token);
+                // disable further automatic monitoring
+                svc.DisableMonitoring();
+
+                return Results.Ok(ApiResponse<object>.Ok(new { KilledPids = killed }));
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        });
     }
 }

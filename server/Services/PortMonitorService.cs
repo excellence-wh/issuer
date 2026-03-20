@@ -1,4 +1,6 @@
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
+using System.Diagnostics;
 using IssuerServer.Models;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -11,11 +13,14 @@ namespace IssuerServer.Services;
     private readonly PortMonitorOptions _options;
     private readonly ICommandExecutor _executor;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
+    // controls whether the periodic automatic checks run
+    private volatile bool _monitoringEnabled;
 
     public PortMonitorService(IOptions<PortMonitorOptions> options, ICommandExecutor executor)
     {
         _options = options.Value;
         _executor = executor;
+        _monitoringEnabled = _options.Enabled;
     }
 
     // Provide a simple startup trigger that can be called from Program.cs
@@ -44,6 +49,13 @@ namespace IssuerServer.Services;
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            if (!_monitoringEnabled)
+            {
+                // Monitoring disabled - sleep briefly and continue without performing checks
+                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                continue;
+            }
+
             try
             {
                 await CheckOnceAsync(stoppingToken);
@@ -61,6 +73,65 @@ namespace IssuerServer.Services;
     public async Task TriggerOnceAsync(CancellationToken ct)
     {
         await CheckOnceAsync(ct);
+    }
+
+    // Kill processes that are listening/connected to configured port
+    public async Task<int[]> KillListenersAsync(CancellationToken ct)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "netstat",
+                Arguments = "-ano",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+
+            using var proc = Process.Start(psi);
+            if (proc == null) return Array.Empty<int>();
+
+            var output = await proc.StandardOutput.ReadToEndAsync();
+            proc.WaitForExit(5000);
+
+            var pids = new HashSet<int>();
+            var pattern = $"\\s*TCP\\s+\\S+:{_options.Port}\\s+\\S+\\s+\\S+\\s+(\\d+)";
+            var rx = new Regex(pattern);
+            foreach (Match m in rx.Matches(output))
+            {
+                if (int.TryParse(m.Groups[1].Value, out var pid)) pids.Add(pid);
+            }
+
+            var killed = new List<int>();
+            foreach (var pid in pids)
+            {
+                try
+                {
+                    var p = Process.GetProcessById(pid);
+                    Log.Information("PortMonitorService: attempting to kill process {Pid} ({Name})", pid, p.ProcessName);
+                    p.Kill(true);
+                    killed.Add(pid);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "PortMonitorService: failed to kill pid {Pid}", pid);
+                }
+            }
+
+            return killed.ToArray();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "PortMonitorService: exception when attempting to kill listeners");
+            return Array.Empty<int>();
+        }
+    }
+
+    public void DisableMonitoring()
+    {
+        _monitoringEnabled = false;
+        Log.Information("PortMonitorService: monitoring disabled via API");
     }
 
     private async Task CheckOnceAsync(CancellationToken ct)
