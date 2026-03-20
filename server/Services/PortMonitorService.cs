@@ -6,8 +6,8 @@ using Serilog;
 
 namespace IssuerServer.Services;
 
-public class PortMonitorService : BackgroundService
-{
+    public class PortMonitorService : BackgroundService
+    {
     private readonly PortMonitorOptions _options;
     private readonly ICommandExecutor _executor;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -41,6 +41,12 @@ public class PortMonitorService : BackgroundService
 
             await Task.Delay(TimeSpan.FromMinutes(_options.IntervalMinutes), stoppingToken);
         }
+    }
+
+    // Exposed method to allow manual trigger from API
+    public async Task TriggerOnceAsync(CancellationToken ct)
+    {
+        await CheckOnceAsync(ct);
     }
 
     private async Task CheckOnceAsync(CancellationToken ct)

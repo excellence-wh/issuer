@@ -145,5 +145,27 @@ public static class RedmineRoutes
                 return Results.Problem(ex.Message);
             }
         });
+
+        // 手动触发 PortMonitor 的检查（POST /api/redmine/trigger-port-monitor）
+        group.MapPost("/trigger-port-monitor", async (IServiceProvider sp) =>
+        {
+            try
+            {
+                var svc = sp.GetService<PortMonitorService>();
+                if (svc == null)
+                {
+                    return Results.Problem("PortMonitorService not registered");
+                }
+
+                // 不等待太久，传入短超时
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+                await svc.TriggerOnceAsync(cts.Token);
+                return Results.Ok(ApiResponse<object>.Ok(new { Message = "Trigger executed" }));
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        });
     }
 }
