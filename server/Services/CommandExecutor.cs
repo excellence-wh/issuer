@@ -38,24 +38,37 @@ public class CommandExecutor : ICommandExecutor
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
 
-            var tcs = new TaskCompletionSource<int>();
-            proc.Exited += (s, e) => tcs.TrySetResult(proc.ExitCode);
-            proc.EnableRaisingEvents = true;
-
-            using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(timeoutMs, linked.Token));
-            if (completedTask != tcs.Task)
+            var exit = -999;
+            try
             {
+                var tcs = new TaskCompletionSource<int>();
+                proc.Exited += (s, e) => tcs.TrySetResult(proc.ExitCode);
+                proc.EnableRaisingEvents = true;
+
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(timeoutMs, linked.Token));
+                if (completedTask != tcs.Task)
+                {
+                    try
+                    {
+                        proc.Kill(true);
+                    }
+                    catch { }
+                    Log.Warning("CommandExecutor: process timeout {Command} {Args}", command, args);
+                    return new CommandResult(-2, stdoutSb.ToString(), stderrSb.ToString() + "\n(timeout)", sw.ElapsedMilliseconds);
+                }
+
+                exit = await tcs.Task;
+            }
+            finally
+            {
+                // ensure we drain any remaining output
                 try
                 {
-                    proc.Kill(true);
+                    proc.CancelOutputRead();
                 }
                 catch { }
-                Log.Warning("CommandExecutor: process timeout {Command} {Args}", command, args);
-                return new CommandResult(-2, stdoutSb.ToString(), stderrSb.ToString() + "\n(timeout)", sw.ElapsedMilliseconds);
             }
-
-            var exit = await tcs.Task;
             sw.Stop();
             return new CommandResult(exit, stdoutSb.ToString(), stderrSb.ToString(), sw.ElapsedMilliseconds);
         }
