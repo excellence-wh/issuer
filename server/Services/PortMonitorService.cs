@@ -87,10 +87,13 @@ namespace IssuerServer.Services;
             {
                 attempt++;
                 var result = await _executor.ExecuteAsync(_options.Command, _options.Args, _options.WorkingDirectory, _options.TimeoutMs, ct);
+                // Log detailed result immediately so caller can see command outputs in logs
+                Log.Information("PortMonitorService: command attempt {Attempt} finished with exit {Exit} after {Ms}ms", attempt, result.ExitCode, result.ElapsedMs);
+                if (!string.IsNullOrEmpty(result.Stdout)) Log.Information("PortMonitorService: command stdout: {Out}", result.Stdout);
+                if (!string.IsNullOrEmpty(result.Stderr)) Log.Warning("PortMonitorService: command stderr: {Err}", result.Stderr);
                 if (result.Success)
                 {
                     Log.Information("PortMonitorService: command succeeded (exit {Exit}) after {Ms}ms", result.ExitCode, result.ElapsedMs);
-                    Log.Debug("Stdout: {Out}", result.Stdout);
                     return;
                 }
 
