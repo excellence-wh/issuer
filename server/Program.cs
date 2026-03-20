@@ -81,6 +81,10 @@ try
     builder.Services.AddSingleton<HgService>();
     builder.Services.AddSingleton<RedmineService>();
     builder.Services.AddSingleton<MiMoService>();
+    // Port monitor 服务与命令执行器
+    builder.Services.Configure<IssuerServer.Models.PortMonitorOptions>(builder.Configuration.GetSection("PortMonitor"));
+    builder.Services.AddSingleton<ICommandExecutor, CommandExecutor>();
+    builder.Services.AddHostedService<PortMonitorService>();
 
     // 将主机配置为作为 Windows Service 运行
     builder.Host.UseWindowsService();
