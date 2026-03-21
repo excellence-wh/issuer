@@ -229,13 +229,39 @@ const FloatingBall = () => {
     const ball = document.createElement('div');
     ball.id = 'excellence-floating-ball';
     ball.className = 'floating-ball';
-    ball.textContent = usageWarning ? '⚠️' : '📊';
+    
+    // 使用图片图标
+    const icon = document.createElement('img');
+    const iconPath = isDark ? 'dark.svg' : 'light.svg';
+    
+    // 在扩展环境中使用 chrome.runtime.getURL，否则使用相对路径
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+      icon.src = chrome.runtime.getURL(iconPath);
+    } else {
+      icon.src = iconPath;
+    }
+    
+    icon.style.width = '32px';
+    icon.style.height = '32px';
+    icon.style.pointerEvents = 'none';
+    ball.appendChild(icon);
+    
+    // 如果有使用警告，添加警告标记
+    if (usageWarning) {
+      const warningBadge = document.createElement('div');
+      warningBadge.textContent = '⚠️';
+      warningBadge.style.position = 'absolute';
+      warningBadge.style.top = '-5px';
+      warningBadge.style.right = '-5px';
+      warningBadge.style.fontSize = '16px';
+      ball.appendChild(warningBadge);
+    }
+    
     ball.style.backgroundSize = 'cover';
     ball.style.backgroundPosition = 'center';
     ball.style.position = 'fixed';
     ball.style.zIndex = '2147483647';
     ball.style.cursor = 'grab';
-    ball.style.fontSize = '28px';
     ball.style.width = '50px';
     ball.style.height = '50px';
     ball.style.display = 'flex';
@@ -249,6 +275,7 @@ const FloatingBall = () => {
     ball.style.transition = 'transform 0.2s, box-shadow 0.2s';
     ball.style.userSelect = 'none';
     ball.style.touchAction = 'none';
+    ball.style.overflow = 'visible';
 
     // 应用保存的位置或使用默认位置
     if (position.x !== null && position.y !== null) {

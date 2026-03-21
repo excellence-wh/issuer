@@ -6,7 +6,7 @@ This file provides guidelines for agentic coding agents working on the Excellenc
 
 This is a monorepo containing:
 - **server**: Hono.js API server with Bun runtime
-- **browser-extension**: React + TypeScript browser extension using Vite and Mantine UI
+- **browser-extension**: React + TypeScript browser extension using Vite and @base-ui/react
 
 ## Build Commands
 
@@ -56,7 +56,7 @@ bun run preview  # Preview production build
 
 ### Import Order
 
-1. External library imports (React, Hono, Mantine)
+1. External library imports (React, Hono, @base-ui/react)
 2. Type imports
 3. Internal absolute imports (services, utils, types)
 4. Relative imports (components, local utils)
@@ -77,6 +77,8 @@ bun run preview  # Preview production build
 - Services for API calls in services/
 - Type definitions in types/ with .d.ts extension
 - Default exports for page components
+- UI components in components/ui/ using @base-ui/react primitives
+- Use Sonner for toast notifications via showToast utility
 
 ### Error Handling
 
@@ -116,16 +118,17 @@ browser-extension/
     main.tsx          # Entry point
     App.tsx           # Root component
     components/       # React components
+      ui/             # Reusable UI components (badge, button, card, dialog, etc.)
     services/         # API services
     types/            # Type definitions
-    utils/            # Utility functions
+    utils/            # Utility functions (hg.ts, toast.ts, etc.)
 ```
 
 ## Tech Stack
 
 - **Server**: Bun runtime, Hono.js framework, Scalar for API docs
-- **Frontend**: React 19, TypeScript, Vite, Mantine v8, Tabler Icons
-- **Build**: Bun for server, Vite for extension
+- **Frontend**: React 19, TypeScript, Vite, Sonner (toast), @base-ui/react, Lucide Icons
+- **Build**: Bun for server, Vite for extension, @tailwindcss/vite
 - **Linting**: ESLint 9 with TypeScript support
 
 ## Notes
@@ -134,3 +137,5 @@ browser-extension/
 - Server provides Mercurial (hg) integration
 - No existing Cursor rules or Copilot instructions found
 - Project uses Chinese text in UI (e.g., "修改的文件")
+- Toast notifications use Sonner library (not Mantine)
+- Extension shows floating ball on localhost:5173 for development

@@ -6,13 +6,19 @@
     "action": {
         "default_popup": "index.html",
         "default_icon": {
-            "16": "favicon-dark.png"
+            "16": "default.svg",
+            "32": "default.svg",
+            "48": "default.svg",
+            "128": "default.svg"
         },
         "default_width": 400,
         "default_height": 300
     },
     "icons": {
-        "16": "favicon-dark.png"
+        "16": "default.svg",
+        "32": "default.svg",
+        "48": "default.svg",
+        "128": "default.svg"
     },
     "content_scripts": [
         {
@@ -24,7 +30,7 @@
     ],
     "web_accessible_resources": [
         {
-            "resources": ["assets/index.js", "assets/index.css", "templates/*.xlsx"],
+            "resources": ["assets/index.js", "assets/index.css", "templates/*.xlsx", "*.svg", "*.png"],
             "matches": ["*://*/*"]
         }
     ]
