@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { utils, write } from 'xlsx-js-style';
 import { formatDateForInput, getPeriodForDate } from '../utils/date';
-import { showToast } from '../App';
+import { showToast } from '../utils/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -133,7 +133,8 @@ export const WeeklyReportModal = ({ opened, onClose, locale }: WeeklyReportModal
     setIsCustomPeriod(false);
   };
 
-  const handlePeriodChange = (value: string) => {
+  const handlePeriodChange = (value: string | null) => {
+    if (!value) return;
     if (value === 'custom') {
       setIsCustomPeriod(true);
     } else {

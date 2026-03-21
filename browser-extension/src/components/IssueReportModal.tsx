@@ -7,8 +7,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import type { Locale } from "@/lib/i18n";
+import { getTranslation } from "@/lib/i18n";
 import { useCallback, useEffect, useState } from "react";
-import { showToast } from "../App";
+import { showToast } from "../utils/toast";
 import { llmService } from "../services/llm";
 import type { IssueData, ReportFormData } from "../types/issue";
 import {
@@ -27,8 +29,6 @@ import {
   TitleInput,
 } from "./issue-report";
 import { FileListPanel } from "./issue-report/FileListPanel";
-import type { Locale } from "@/lib/i18n";
-import { getTranslation } from "@/lib/i18n";
 
 interface IssueReportModalProps {
   opened: boolean;
@@ -524,7 +524,7 @@ export const IssueReportModal = ({
         )}
 
         {success && (
-          <Alert variant="success" className="mb-4">
+          <Alert variant="default" className="mb-4">
             <AlertDescription className="flex justify-between items-center">
               {t("toast.reportGenerated")}: {issueData?.id}.xlsx
               <Button variant="ghost" size="sm" onClick={() => setSuccess(false)}>
@@ -546,7 +546,7 @@ export const IssueReportModal = ({
             <IssueTypeSelect
               value={issueType}
               onChange={(value) => {
-                setIssueType(value);
+                setIssueType(value || "");
                 setValidationErrors({});
               }}
               disabled={loading}

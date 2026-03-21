@@ -26,7 +26,7 @@ export const IssueTypeSelect = ({
   locale,
 }: {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string | null) => void;
   disabled: boolean;
   locale: Locale;
 }) => {

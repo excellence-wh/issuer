@@ -10,7 +10,11 @@ const isRedmineSite = (): boolean => {
   if (typeof window === 'undefined') return false;
   try {
     const host = window.location.hostname.toLowerCase();
+    const port = window.location.port;
     const path = window.location.pathname;
+
+    // 本地开发服务器
+    if (host === 'localhost' && port === '5173') return true;
 
     if (host.includes('redmine')) return true;
     if (/\/projects(\/|$)/.test(path) || /\/issues(\/|$)/.test(path)) return true;

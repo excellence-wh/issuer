@@ -1,7 +1,6 @@
-import { Alert } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertDescription } from "@/components/ui/alert";
 import type { Locale } from "@/lib/i18n";
 import { getTranslation } from "@/lib/i18n";
 
@@ -35,7 +34,7 @@ export const UsageInfoCard = ({
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-2">
-            <Badge variant="success">
+            <Badge variant="secondary">
               {t("usage.aiUsage")}: {usageInfo.aiUsage}%
             </Badge>
             {usageInfo.resolvedDate && (

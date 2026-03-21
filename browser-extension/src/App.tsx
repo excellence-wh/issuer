@@ -5,19 +5,12 @@ import { IssueReportModal } from './components/IssueReportModal';
 import { SettingsModal } from './components/SettingsModal';
 import { WeeklyReportModal } from './components/WeeklyReportModal';
 
-import { ToastContainer } from './components/ui/toast';
-import { useToast } from './hooks/useToast';
+import { toast } from 'sonner';
+import { Toaster } from './components/ui/sonner';
 import type { Locale } from './lib/i18n';
 import { getTranslation } from './lib/i18n';
 
-// 创建全局 Toast 状态管理
-let globalAddToast: ReturnType<typeof useToast>['addToast'] | null = null;
 
-export function showToast(type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string) {
-  if (globalAddToast) {
-    globalAddToast({ type, title, message, duration: type === 'error' ? 5000 : 4000 });
-  }
-}
 
 const isIssuePage = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -103,20 +96,9 @@ const FloatingBall = () => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  const t = (key: string) => getTranslation(locale, key);
+  const t = useCallback((key: string) => getTranslation(locale, key), [locale]);
 
   const menuRef = useRef<HTMLDivElement>(null);
-  
-  // Toast 通知
-  const { toasts, addToast, removeToast } = useToast();
-  
-  // 注册全局 Toast 函数
-  useEffect(() => {
-    globalAddToast = addToast;
-    return () => {
-      globalAddToast = null;
-    };
-  }, [addToast]);
 
   // 拖拽状态
   const [position, setPosition] = useState(() => {
@@ -155,19 +137,14 @@ const FloatingBall = () => {
       setUsageWarning(true);
       // 只显示一次 Toast 提醒
       if (!hasShownWarningRef.current) {
-        addToast({
-          type: 'warning',
-          title: t("usage.warning"),
-          message: t("usage.fillUsage"),
-          duration: 6000,
-        });
+        toast.warning(`${t("usage.warning")}\n${t("usage.fillUsage")}`, { duration: 6000 });
         hasShownWarningRef.current = true;
       }
     } else {
       setUsageWarning(false);
       hasShownWarningRef.current = false;
     }
-  }, [addToast]);
+  }, [t]);
 
   const handleMenuSelect = (value: string) => {
     setShowMenu(false);
@@ -747,8 +724,7 @@ const FloatingBall = () => {
       />
       
       
-      {/* Toast 通知容器 */}
-      <ToastContainer toasts={toasts} onClose={removeToast} isDark={isDark} />
+      <Toaster theme={isDark ? 'dark' : 'light'} />
     </>
   );
 };
